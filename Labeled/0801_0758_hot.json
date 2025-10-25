@@ -1,0 +1,1 @@
+{"project_name": "0801_0758", "labeler": "Lukas", "method": "One-hot-encoding", "classes": ["Action", " Resting", " Peadling", " Pushing"], "decision_basis": "Video", "sequence_width": "", "button_presses": " Resting: 474;  Peadling: 2828; Action: 3128;  Peadling: 12312;  Pushing: 12760;  Peadling: 15865; Action: 16039;  Peadling: 20650; Action: 20837;  Resting: 23733"}

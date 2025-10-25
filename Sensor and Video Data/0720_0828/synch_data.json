@@ -1,0 +1,14 @@
+{
+    "Difference (Head)": 285.5433,
+    "Difference (Wrist)": 281.2177,
+    "Difference (Seat)": 287.4762,
+    "Average Difference": 284.74573333333336,
+    "Head Sensor in Frames": 500.4567,
+    "Wrist Sensor in Frames": 403.7823,
+    "Seat Sensor in Frames": 297.5238,
+    "Head Sensor Video (Timestamp) in Frames": 786,
+    "Wrist Sensor Video (Timestamp) in Frames": 685,
+    "Seat Sensor Video (Timestamp) in Frames": 585,
+    "Start Riding Video": 2360,
+    "Messages": []
+}
