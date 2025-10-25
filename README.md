@@ -1,0 +1,2 @@
+# ML_highlightvideoerstellung_bachelor
+Repository für meine Bachelorarbeit zur automatisierten Highlightvideoerstellung beim Downhill-Mountainbiking.
