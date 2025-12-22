@@ -1,1 +1,0 @@
-Da an dem tag die Sensoren gesponnen haben und nicht mehr verlässlich Daten aufgezeichnet haben habe ich die Sensoren auf die Neue "Movella Dot" Firmware upgedatet. Dadurch ging alles wieder problemlos. 

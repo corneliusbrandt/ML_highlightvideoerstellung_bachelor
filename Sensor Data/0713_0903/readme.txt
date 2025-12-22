@@ -1,1 +1,0 @@
-@Sandro(14:10.2023) Zweites mal verwendet der initial routine. aufpassen.. 
