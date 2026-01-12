@@ -209,3 +209,6 @@ __marimo__/
 # Sensor and video data
 sensor_and_video_data/
 
+# Output datasets
+datasets_output/
+
