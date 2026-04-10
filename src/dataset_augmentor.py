@@ -29,10 +29,30 @@ def add_gaussian_noise(X, mean=0, std=0.05):
 
 # from git repo menationed above
 # wie muss ich das zitieren?
-def add_rotation(X, angle_range=(-15, 15)):
-    axis = np.random.uniform(low=-1, high=1, size=X.shape[1])  # Random rotation axis
+# rewritten to rotate 3 seonsors with 9 channels each -> otherwise would have to rotate in 27D -> not very physically meaningful (assisted by chatgpt)
+def add_rotation(X, angle_range=(-np.deg2rad(20), np.deg2rad(20))):
+
+    X_rot = X.copy()
+    axis = np.random.uniform(low=-1, high=1, size=3)  # Random rotation axis 3D vector
+    axis = axis / np.linalg.norm(axis)  # Normalize the axis
     angle = np.random.uniform(low=angle_range[0], high=angle_range[1])  # Random rotation angle
-    return np.matmul(X , axangle2mat(axis,angle))
+
+    R = axangle2mat(axis, angle)  # Rotation matrix
+
+    # rotate sensors piecewise (each sensor has 9 channels: 3 for Euler, 3 for Acceleration, 3 for Gyroscope)
+    for sensor in range(3):
+        base_idx = sensor * 9
+
+        #Euler (Euler is not rotatet -> makes no sense physically)
+        X_rot[:, base_idx:base_idx+3] = X[:, base_idx:base_idx+3]
+
+        #Acceleration
+        X_rot[:, base_idx+3:base_idx+6] = np.matmul(X[:, base_idx+3:base_idx+6], R)
+
+        #Gyroscope
+        X_rot[:, base_idx+6:base_idx+9] = np.matmul(X[:, base_idx+6:base_idx+9], R)
+
+    return X_rot
 
 # from git repo menationed above
 # wie muss ich das zitieren?
@@ -59,7 +79,7 @@ def add_time_warping(X, sigma=0.2):
 
     return X_warped
     
-def add_rot_plus_time_warping(X, angle_range=(-15, 15), sigma=0.2):
+def add_rot_plus_time_warping(X, angle_range=(-np.deg2rad(20), np.deg2rad(20)), sigma=0.2):
     X_rot = add_rotation(X, angle_range)
     X_warped = add_time_warping(X_rot, sigma)
     return X_warped
@@ -77,10 +97,29 @@ def GenerateRandomCurves(X, sigma=0.2, knot=4):
     c = CubicSpline(xx, yy)(x_range)
     return c
 
+
+# main functio to augment dataset. Only returns augmented windows that have to be appended to the main dataset.
+
+'''
+Here it may be good to implement a logic which matches the count of the different classes. For example if 3 is underrepresented it will augment more windos
+with the label 4.
+'''
 def augment_data(X, y):
+    augmented_X = []
+    augmented_y = []
     for window, label in zip(X, y):
-        pass
-pass
+        if label != 5:
+            augmented_X.append(add_gaussian_noise(window))
+            augmented_y.append(label)
+            augmented_X.append(add_rotation(window))
+            augmented_y.append(label)
+            augmented_X.append(add_time_warping(window))
+            augmented_y.append(label)
+            augmented_X.append(add_rot_plus_time_warping(window))
+            augmented_y.append(label)
+    
+    return np.array(augmented_X), np.array(augmented_y)
+
     
 
 def test_visualization(X, y):
@@ -94,3 +133,6 @@ def test_visualization(X, y):
 
 if __name__ == "__main__":
     X, y = load_data("datasets_output/train_dataset.npz")
+    augmented_X, augmented_y = augment_data(X, y)
+    print("Original dataset shape:", X.shape, y.shape)
+    print("Augmented dataset shape:", augmented_X.shape, augmented_y.shape)
