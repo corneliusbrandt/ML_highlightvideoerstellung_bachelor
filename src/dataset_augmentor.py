@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 from transforms3d.axangles import axangle2mat
-
+import matplotlib.pyplot as plt
 
 '''
 Script used for data augmentation. Main function is called in dataset_builder and creates augmented
@@ -57,7 +57,7 @@ def add_rotation(X, angle_range=(-np.deg2rad(20), np.deg2rad(20))):
 # from git repo menationed above
 # wie muss ich das zitieren?
 # changed to have the same time warping for all channels (assisted by chatgpt)
-def add_time_warping(X, sigma=0.2):
+def add_time_warping(X, sigma=0.5):
     n_steps, n_channels = X.shape
     tt = GenerateRandomCurves(X, sigma) # Regard these samples aroun 1 as time intervals
     tt_cum = np.cumsum(tt, axis=0)        # Add intervals to create warped timeline
@@ -120,15 +120,70 @@ def augment_data(X, y):
     
     return np.array(augmented_X), np.array(augmented_y)
 
-    
 
-def test_visualization(X, y):
-    pass
+#plot written by chatgpt 5.3
+def test_visualization(window_original, window_augmented):
+    n_samples, n_channels = window_original.shape
+    time_steps = np.arange(n_samples)
 
+    group_size = 3
+    n_groups = n_channels // group_size  # here: 27 → 9
 
+    n_cols = 3
+    n_rows = int(np.ceil(n_groups / n_cols))
 
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 10), sharex=True)
+    axes = axes.flatten()
 
+    for g in range(n_groups):
+        ax = axes[g]
+        start = g * group_size
+        end = start + group_size
 
+        # colors for the 3 channels
+        colors = plt.cm.tab10.colors
+
+        for i, ch in enumerate(range(start, end)):
+            # Original
+            l1, = ax.plot(time_steps,
+                          window_original[:, ch],
+                          color=colors[i],
+                          linestyle='-',
+                          linewidth=1)
+
+            # Augmented
+            l2, = ax.plot(time_steps,
+                          window_augmented[:, ch],
+                          color=colors[i],
+                          linestyle='--',
+                          linewidth=1)
+
+        ax.set_title(f'Channels {start+1}-{end}', fontsize=10)
+        ax.grid(alpha=0.3)
+
+        if g // n_cols == n_rows - 1:
+            ax.set_xlabel('Time')
+        if g % n_cols == 0:
+            ax.set_ylabel('Value')
+
+    #remove empty subplots
+    for j in range(n_groups, len(axes)):
+        fig.delaxes(axes[j])
+
+    # global legend
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color='black', linestyle='-', label='Original'),
+        Line2D([0], [0], color='black', linestyle='--', label='Augmented')
+    ]
+
+    fig.legend(handles=legend_elements,
+               loc='upper center',
+               ncol=2,
+               frameon=False)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -136,3 +191,16 @@ if __name__ == "__main__":
     augmented_X, augmented_y = augment_data(X, y)
     print("Original dataset shape:", X.shape, y.shape)
     print("Augmented dataset shape:", augmented_X.shape, augmented_y.shape)
+    
+    # visualize one example
+    original_windows_augmented = []
+    for window, label in zip(X, y):
+        if label != 5:
+            original_windows_augmented.append(window)
+    original_windows_augmented = np.array(original_windows_augmented)
+    print("Original windows that were augmented shape:", original_windows_augmented.shape)
+    
+
+    #for each original window there are 4 augmented windows (gaussian noise, rotation, time warping, rotation + time warping) 
+    #index for augmented = index for original * 4 + augmentation type (0-3)
+    test_visualization(original_windows_augmented[0], augmented_X[3])
