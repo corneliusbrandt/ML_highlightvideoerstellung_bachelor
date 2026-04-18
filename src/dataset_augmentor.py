@@ -121,7 +121,7 @@ def augment_data(X, y):
     return np.array(augmented_X), np.array(augmented_y)
 
 
-#plot written by chatgpt 5.3
+#plot written by chatgpt 5.3 on 16.04.26
 def test_visualization(window_original, window_augmented):
     n_samples, n_channels = window_original.shape
     time_steps = np.arange(n_samples)
