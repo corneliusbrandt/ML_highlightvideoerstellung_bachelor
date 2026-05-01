@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 from transforms3d.axangles import axangle2mat
 import matplotlib.pyplot as plt
+from helper import load_data
 
 '''
 Script used for data augmentation. Main function is called in dataset_builder and creates augmented
@@ -14,14 +15,6 @@ that are physically meaningful.
 Augmentation techniques and code inspored by: https://github.com/terryum/Data-Augmentation-For-Wearable-Sensor-Data/tree/master
 
 '''
-
-def load_data(dataset_path):
-    data = np.load(dataset_path)
-
-    X = data['X']
-    y = data['y']
-
-    return X, y
 
 def add_gaussian_noise(X, mean=0, std=0.05):
     noise = np.random.normal(loc=mean, scale=std, size=X.shape)
