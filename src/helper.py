@@ -1,4 +1,12 @@
 import numpy as np
+from sklearn.utils.class_weight import compute_class_weight
+import torch
+import matplotlib.pyplot as plt
+
+
+# Useful functions can be defined here so that they can be imported into other files
+# -> better code organization and reusability
+
 
 
 def load_data(dataset_path):
@@ -14,3 +22,21 @@ def format_data_for_pytorch(X, y):
     # because PyTorch expects (batch_size, num_channels, num_time_steps)
     X = np.transpose(X, (0, 2, 1))
     return X, y
+
+
+# function to calculate the class weights for weighted cross entropy loss
+def calculate_class_weights(y):
+    classes = np.unique(y)
+    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y)
+    return torch.tensor(class_weights, dtype=torch.float32)
+
+def plot_loss_history(loss_history):
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(loss_history, label='Training Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training Loss History')
+    plt.legend()
+    plt.grid()
+    plt.show()
