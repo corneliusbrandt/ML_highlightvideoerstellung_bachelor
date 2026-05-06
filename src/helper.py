@@ -30,13 +30,13 @@ def calculate_class_weights(y):
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y)
     return torch.tensor(class_weights, dtype=torch.float32)
 
-def plot_loss_history(loss_history):
-
+def plot_loss_history(train_loss_history, val_loss_history):
     plt.figure(figsize=(10, 5))
-    plt.plot(loss_history, label='Training Loss')
+    plt.plot(train_loss_history, label='Training Loss')
+    plt.plot(val_loss_history, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('Training Loss History')
+    plt.title('Training and Validation Loss History')
     plt.legend()
     plt.grid()
     plt.show()

@@ -20,6 +20,10 @@ def add_gaussian_noise(X, mean=0, std=0.05):
     noise = np.random.normal(loc=mean, scale=std, size=X.shape)
     return X + noise
 
+def add_scaling(X, sigma=0.3):
+    scalingFactor = np.random.normal(loc=1.0, scale=sigma)
+    return X*scalingFactor
+
 # from git repo menationed above
 # wie muss ich das zitieren?
 # rewritten to rotate 3 seonsors with 9 channels each -> otherwise would have to rotate in 27D -> not very physically meaningful (assisted by chatgpt)
@@ -97,12 +101,16 @@ def GenerateRandomCurves(X, sigma=0.2, knot=4):
 Here it may be good to implement a logic which matches the count of the different classes. For example if 3 is underrepresented it will augment more windos
 with the label 4.
 '''
-def augment_data(X, y):
+def augment_data(X, y, nothing_label=5):
     augmented_X = []
     augmented_y = []
     for window, label in zip(X, y):
-        if label != 5:
+        if label != nothing_label:
             augmented_X.append(add_gaussian_noise(window))
+            augmented_y.append(label)
+            augmented_X.append(add_scaling(window))
+            augmented_y.append(label)
+            augmented_X.append(add_scaling(window))
             augmented_y.append(label)
             augmented_X.append(add_rotation(window))
             augmented_y.append(label)
@@ -194,6 +202,6 @@ if __name__ == "__main__":
     print("Original windows that were augmented shape:", original_windows_augmented.shape)
     
 
-    #for each original window there are 4 augmented windows (gaussian noise, rotation, time warping, rotation + time warping) 
-    #index for augmented = index for original * 4 + augmentation type (0-3)
-    test_visualization(original_windows_augmented[0], augmented_X[3])
+    #for each original window there are 6 augmented windows (gaussian noise, 2x scaling,  rotation, time warping, rotation + time warping) 
+    #index for augmented = index for original * 6 + augmentation type (0-5)
+    test_visualization(original_windows_augmented[0], augmented_X[2])
