@@ -53,7 +53,7 @@ class CNN1D(nn.Module):
             nn.Flatten(),
             nn.Linear(64, 32),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             nn.Linear(32, num_classes)
         )
 
@@ -79,9 +79,12 @@ val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 # Calculate class weights for imbalanced dataset
 class_weights = calculate_class_weights(y_train)
 
+print(f"Class Weights: {class_weights}")
+
 # Initialize Model, Loss Function and Optimizer
 model = CNN1D(num_channels=27, num_classes=2)
 loss_function = nn.CrossEntropyLoss(weight=class_weights)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
@@ -162,6 +165,7 @@ for epoch in range(n_epochs):
         f"Val Precision: {val_precision:.4f}, "
         f"Val Recall: {val_recall:.4f}, "
         f"Val F1: {val_f1:.4f}"
+        f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
     )
 
 plot_loss_history(train_loss_history, val_loss_history)
