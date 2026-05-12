@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix)
+from focal_loss import FocalLoss
 
 '''
 First draft of a 1D CNN for binary classification.
@@ -64,6 +65,7 @@ class CNN1D(nn.Module):
     
 
 
+num_classes = 2
 
 # Import Data and prepare it for Training
 X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
@@ -82,16 +84,22 @@ class_weights = calculate_class_weights(y_train)
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
-model = CNN1D(num_channels=27, num_classes=2)
-loss_function = nn.CrossEntropyLoss(weight=class_weights)
+model = CNN1D(num_channels=27, num_classes=num_classes)
+#loss_function = nn.CrossEntropyLoss(weight=class_weights)
+loss_function = FocalLoss(gamma=4, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 #Training Loop
-n_epochs = 20
+n_epochs = 30
 train_loss_history = []
 val_loss_history = []
+
+# Containers for average metric calculation
+val_precision_history = []
+val_recall_history = []
+val_f1_history = []
 
 for epoch in range(n_epochs):
     model.train()
@@ -152,8 +160,11 @@ for epoch in range(n_epochs):
     # Calculate metrics
     val_accuracy = accuracy_score(all_labels, all_preds)
     val_precision = precision_score(all_labels, all_preds)
+    val_precision_history.append(val_precision)
     val_recall = recall_score(all_labels, all_preds)
+    val_recall_history.append(val_recall)
     val_f1 = f1_score(all_labels, all_preds)
+    val_f1_history.append(val_f1)
     val_confusion_matrix = confusion_matrix(all_labels, all_preds)
 
     print(
@@ -167,5 +178,18 @@ for epoch in range(n_epochs):
         f"Val F1: {val_f1:.4f}"
         f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
     )
+
+avg_val_precision = sum(val_precision_history) / len(val_precision_history)
+avg_val_recall = sum(val_recall_history) / len(val_recall_history)
+avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
+
+print(
+    f"Average Validation Precision: {avg_val_precision:.4f}\n"
+    f"Best Validation Precision: {max(val_precision_history):.4f}\n"
+    f"Average Validation Recall: {avg_val_recall:.4f}\n"
+    f"Best Validation Recall: {max(val_recall_history):.4f}\n"
+    f"Average Validation F1: {avg_val_f1:.4f}\n"
+    f"Best Validation F1: {max(val_f1_history):.4f}"
+)
 
 plot_loss_history(train_loss_history, val_loss_history)

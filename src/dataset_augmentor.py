@@ -114,6 +114,8 @@ def augment_data(X, y, nothing_label=5):
             augmented_y.append(label)
             augmented_X.append(add_rotation(window))
             augmented_y.append(label)
+            augmented_X.append(add_rotation(window))
+            augmented_y.append(label)
             augmented_X.append(add_time_warping(window))
             augmented_y.append(label)
             augmented_X.append(add_rot_plus_time_warping(window))
