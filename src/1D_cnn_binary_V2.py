@@ -75,20 +75,20 @@ val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 
 # Calculate class weights for imbalanced dataset
-class_weights = calculate_class_weights(y_train)
+class_weights = calculate_class_weights(y_train, scaling_factor=2, min_weight=0.5)
 
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
 model = CNN1D(num_channels=27, num_classes=num_classes)
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
-loss_function = FocalLoss(gamma=4, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
+loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.AdamW(model.parameters(), lr=0.00001)
 
 
 #Training Loop
-n_epochs = 30
+n_epochs = 200
 train_loss_history = []
 val_loss_history = []
 
@@ -96,6 +96,14 @@ val_loss_history = []
 val_precision_history = []
 val_recall_history = []
 val_f1_history = []
+
+# Early Stopping Parameters
+early_stopping_patience = 30
+best_val_loss = float('inf')
+min_delta = 0.0001
+epochs_without_improvement = 0
+best_epoch = 0
+
 
 for epoch in range(n_epochs):
     model.train()
@@ -153,6 +161,19 @@ for epoch in range(n_epochs):
     train_loss_history.append(avg_train_loss)
     val_loss_history.append(avg_val_loss)
 
+
+    if avg_val_loss < best_val_loss - min_delta:
+        best_val_loss = avg_val_loss
+        epochs_without_improvement = 0
+        best_epoch = epoch + 1
+    else:
+        epochs_without_improvement += 1
+
+    if epochs_without_improvement >= early_stopping_patience:
+        print(f"Early stopping triggered after {epoch} epochs.")
+        print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
+        break
+
     # Calculate metrics
     val_accuracy = accuracy_score(all_labels, all_preds)
     val_precision = precision_score(all_labels, all_preds)
@@ -169,9 +190,6 @@ for epoch in range(n_epochs):
         f"Train Acc: {train_accuracy:.4f}, "
         f"Val Loss: {avg_val_loss:.4f}, "
         f"Val Acc: {val_accuracy:.4f}, "
-        f"Val Precision: {val_precision:.4f}, "
-        f"Val Recall: {val_recall:.4f}, "
-        f"Val F1: {val_f1:.4f}"
         f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
     )
 

@@ -26,9 +26,11 @@ def format_data_for_pytorch(X, y):
 
 
 # function to calculate the class weights for weighted cross entropy loss
-def calculate_class_weights(y):
+def calculate_class_weights(y, scaling_factor=1.0, min_weight=0.05):
     classes = np.unique(y)
     class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y)
+    class_weights = 1.0 + (class_weights - 1.0) * scaling_factor
+    class_weights = np.maximum(class_weights, min_weight)
     return torch.tensor(class_weights, dtype=torch.float32)
 
 def plot_loss_history(train_loss_history, val_loss_history):
