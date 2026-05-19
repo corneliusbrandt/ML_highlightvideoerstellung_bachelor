@@ -36,13 +36,13 @@ class CNN1D(nn.Module):
         super().__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(num_channels, 16, kernel_size=5, padding=2),
+            nn.Conv1d(num_channels, 16, kernel_size=25, padding=2),
             nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.MaxPool1d(kernel_size=2),
 
-            nn.Conv1d(16, 32, kernel_size=5, padding=2),
+            nn.Conv1d(16, 32, kernel_size=25, padding=2),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
@@ -75,7 +75,7 @@ val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 
 # Calculate class weights for imbalanced dataset
-class_weights = calculate_class_weights(y_train, scaling_factor=2, min_weight=0.5)
+class_weights = calculate_class_weights(y_train, scaling_factor=2.5, min_weight=1.5)
 
 print(f"Class Weights: {class_weights}")
 
@@ -190,6 +190,7 @@ for epoch in range(n_epochs):
         f"Train Acc: {train_accuracy:.4f}, "
         f"Val Loss: {avg_val_loss:.4f}, "
         f"Val Acc: {val_accuracy:.4f}, "
+        f"Val F1: {val_f1:.4f},"
         f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
     )
 
@@ -199,11 +200,11 @@ avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
 
 print(
     f"Average Validation Precision: {avg_val_precision:.4f}\n"
-    f"Best Validation Precision: {max(val_precision_history):.4f}\n"
+    f"Best Validation Precision: {val_precision_history[best_epoch - 1]:.4f}\n"
     f"Average Validation Recall: {avg_val_recall:.4f}\n"
-    f"Best Validation Recall: {max(val_recall_history):.4f}\n"
+    f"Best Validation Recall: {val_recall_history[best_epoch - 1]:.4f}\n"
     f"Average Validation F1: {avg_val_f1:.4f}\n"
-    f"Best Validation F1: {max(val_f1_history):.4f}"
+    f"Best Validation F1: {val_f1_history[best_epoch - 1]:.4f}"
 )
 
 plot_loss_history(train_loss_history, val_loss_history)
