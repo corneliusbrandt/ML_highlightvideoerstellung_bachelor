@@ -52,16 +52,22 @@ class CNN1D_V2(nn.Module):
             nn.Dropout(0.2),
             nn.MaxPool1d(kernel_size=2),
 
+
+
             nn.Conv1d(16, 32, kernel_size=25, padding=2),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.AdaptiveAvgPool1d(1)
+
+
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(32, num_classes),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, num_classes)
         )
 
     def forward(self, x):
