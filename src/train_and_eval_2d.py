@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix)
 from focal_loss import FocalLoss
 from model_architecures import CNN1D_V1, CNN1D_V2
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet50, ResNet18_Weights, ResNet50_Weights
 
 
 '''
@@ -84,10 +84,10 @@ class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_f
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
-model = resnet18(pretrained=False)
+model = resnet50(weights=ResNet50_Weights.DEFAULT)
 model.fc = nn.Linear(model.fc.in_features, num_classes)  # Adjust the final layer for binary classification
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
-loss_function = FocalLoss(gamma=3.5, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
+loss_function = FocalLoss(gamma=4, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 

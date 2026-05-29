@@ -4,7 +4,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix)
 from focal_loss import FocalLoss
-from model_architecures import CNN1D_V1, CNN1D_V2
+from model_architecures import CNN1D_V1, CNN1D_V2, CNN1D_V3
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 '''
@@ -34,7 +36,7 @@ weight_scaling_factor = 2.5
 min_weight = 1.5
 
 # Early Stopping Parameters
-early_stopping_patience = 30
+early_stopping_patience = 20
 best_val_loss = float('inf')
 min_delta = 0.0001
 epochs_without_improvement = 0
@@ -81,7 +83,7 @@ class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_f
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
-model = CNN1D_V2(num_channels=27, num_classes=num_classes)
+model = CNN1D_V3(num_channels=27, num_classes=num_classes)
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
@@ -96,10 +98,12 @@ train_loss_history = []
 val_loss_history = []
 
 
+
 # Training and Evaluation Loop
 for epoch in range(n_epochs):
     model.train()
 
+    all_features = []
     train_loss = 0
     train_correct = 0
     train_total = 0
@@ -143,6 +147,10 @@ for epoch in range(n_epochs):
             probs = torch.softmax(pred_logit, dim=1)
 
             pred = (probs[:, 1] > threshold).long()  # Convert probabilities to binary predictions
+
+            features = model.feature_extractor(X_batch)
+            features = torch.flatten(features)
+            all_features.append(features.numpy())
 
             all_preds.extend(pred.numpy())
             all_labels.extend(y_batch.numpy())
@@ -189,6 +197,13 @@ for epoch in range(n_epochs):
         f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
     )
 
+    #plt.figure(figsize=(8, 4))
+    #plt.hist(all_features, bins=100)
+    #plt.xlabel("Feature-Wert")
+    #plt.ylabel("Häufigkeit")
+    #plt.title("Verteilung der Feature-Extractor-Ausgaben")
+    #plt.show()
+
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)
 avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
@@ -203,3 +218,4 @@ print(
 )
 
 plot_loss_history(train_loss_history, val_loss_history)
+
