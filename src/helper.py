@@ -3,6 +3,7 @@ from sklearn.utils.class_weight import compute_class_weight
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 
 # Useful functions can be defined here so that they can be imported into other files
@@ -42,6 +43,31 @@ def plot_loss_history(train_loss_history, val_loss_history):
     plt.title('Training and Validation Loss History')
     plt.legend()
     plt.grid()
+    plt.show()
+
+def plot_all_features_with_pca(all_features, all_labels, n_components=2):
+    
+    pca = PCA(n_components=n_components)
+    features_2d = pca.fit_transform(all_features)
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    scatter = ax.scatter(
+    features_2d[:, 0],
+    features_2d[:, 1],
+    features_2d[:, 2],
+    c=all_labels,
+    cmap='viridis',
+    alpha=0.7
+)
+
+    ax.set_xlabel('Principal Component 1')
+    ax.set_ylabel('Principal Component 2')
+    ax.set_zlabel('Principal Component 3')
+    ax.set_title('PCA of Extracted Features')
+    ax.legend(*scatter.legend_elements(), title="Classes")
+
     plt.show()
 
 

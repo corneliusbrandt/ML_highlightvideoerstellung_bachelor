@@ -1,4 +1,4 @@
-from helper import calculate_class_weights, load_data, plot_loss_history
+from helper import calculate_class_weights, load_data, plot_loss_history, plot_all_features_with_pca
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -27,6 +27,7 @@ The modifiable parameters are:
 # Datapreparation
 batch_size = 32
 num_classes = 2
+num_channels = 27
 
 
 #Training Loop
@@ -83,7 +84,7 @@ class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_f
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
-model = CNN1D_V3(num_channels=27, num_classes=num_classes)
+model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
@@ -104,6 +105,7 @@ for epoch in range(n_epochs):
     model.train()
 
     all_features = []
+    all_features_original = []
     train_loss = 0
     train_correct = 0
     train_total = 0
@@ -149,8 +151,10 @@ for epoch in range(n_epochs):
             pred = (probs[:, 1] > threshold).long()  # Convert probabilities to binary predictions
 
             features = model.feature_extractor(X_batch)
-            features = torch.flatten(features)
+            features = torch.flatten(features, start_dim=1)
             all_features.append(features.numpy())
+            
+
 
             all_preds.extend(pred.numpy())
             all_labels.extend(y_batch.numpy())
@@ -158,6 +162,9 @@ for epoch in range(n_epochs):
             val_total += y_batch.size(0)
 
         avg_val_loss = val_loss / len(val_loader)
+
+        all_features = np.vstack(all_features)
+
 
 
     train_loss_history.append(avg_train_loss)
@@ -203,6 +210,7 @@ for epoch in range(n_epochs):
     #plt.ylabel("Häufigkeit")
     #plt.title("Verteilung der Feature-Extractor-Ausgaben")
     #plt.show()
+    plot_all_features_with_pca(all_features[:-1], all_labels[:-1], n_components=3)
 
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)

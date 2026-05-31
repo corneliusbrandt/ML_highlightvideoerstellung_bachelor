@@ -110,6 +110,7 @@ class CNN1D_V3(nn.Module):
             nn.Flatten(),
             nn.Linear(32, 16),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(16, num_classes)
         )
 
