@@ -84,7 +84,7 @@ class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_f
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
-model = resnet50(weights=ResNet50_Weights.DEFAULT)
+model = resnet18(weights=ResNet18_Weights.DEFAULT)
 model.fc = nn.Linear(model.fc.in_features, num_classes)  # Adjust the final layer for binary classification
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=4, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
