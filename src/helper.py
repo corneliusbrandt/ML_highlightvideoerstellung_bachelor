@@ -27,12 +27,22 @@ def format_data_for_pytorch(X, y):
 
 
 # function to calculate the class weights for weighted cross entropy loss
-def calculate_class_weights(y, scaling_factor=1.0, min_weight=0.05):
-    classes = np.unique(y)
-    class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y)
-    class_weights = 1.0 + (class_weights - 1.0) * scaling_factor
-    class_weights = np.maximum(class_weights, min_weight)
-    return torch.tensor(class_weights, dtype=torch.float32)
+def calculate_class_weights(y, num_classes, scaling_factor=1.0, min_weight=1.0):
+    y = np.asarray(y)
+    counts = np.bincount(y, minlength=num_classes)
+    total = counts.sum()
+    weights = np.ones(num_classes, dtype=np.float32)
+
+    for cls in range(num_classes):
+        if counts[cls] > 0:
+            weights[cls] = total / (num_classes * counts[cls])
+        else:
+            weights[cls] = 0.0 # if class is not present in the specific training set the weight will be 0
+
+    weights = weights * scaling_factor
+    weights = np.maximum(weights, min_weight)
+    return torch.tensor(weights, dtype=torch.float32)
+
 
 def plot_loss_history(train_loss_history, val_loss_history):
     plt.figure(figsize=(10, 5))
@@ -45,7 +55,7 @@ def plot_loss_history(train_loss_history, val_loss_history):
     plt.grid()
     plt.show()
 
-def plot_all_features_with_pca(all_features, all_labels, n_components=2):
+def plot_all_features_with_pca(all_features, all_labels, n_components=3):
     
     pca = PCA(n_components=n_components)
     features_2d = pca.fit_transform(all_features)

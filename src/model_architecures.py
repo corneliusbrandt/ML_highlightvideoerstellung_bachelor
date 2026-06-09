@@ -46,7 +46,7 @@ class CNN1D_V2(nn.Module):
         super().__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(num_channels, 16, kernel_size=25, padding=2),
+            nn.Conv1d(num_channels, 16, kernel_size=25, padding=12),
             nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Dropout(0.2),
@@ -54,7 +54,7 @@ class CNN1D_V2(nn.Module):
 
 
 
-            nn.Conv1d(16, 32, kernel_size=25, padding=2),
+            nn.Conv1d(16, 32, kernel_size=25, padding=12),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
@@ -82,21 +82,21 @@ class CNN1D_V3(nn.Module):
         super().__init__()
 
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(num_channels, 16, kernel_size=25, padding=2),
+            nn.Conv1d(num_channels, 16, kernel_size=25, padding=12),
             nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.MaxPool1d(kernel_size=2),
 
 
-            nn.Conv1d(16, 32, kernel_size=25, padding=2),
+            nn.Conv1d(16, 32, kernel_size=25, padding=12),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.MaxPool1d(kernel_size=2),
 
 
-            nn.Conv1d(32, 32, kernel_size=25, padding=2),
+            nn.Conv1d(32, 32, kernel_size=25, padding=12),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),

@@ -33,8 +33,9 @@ num_channels = 27
 #Training Loop
 n_epochs = 200
 learning_rate = 0.00001
-weight_scaling_factor = 2.5
-min_weight = 1.5
+weight_scaling_factor = 2
+min_weight = 0.01
+gamma = 2
 
 # Early Stopping Parameters
 early_stopping_patience = 20
@@ -80,13 +81,13 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 
 # Calculate class weights for imbalanced dataset
-class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_factor, min_weight=min_weight)
+class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
 model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
 #loss_function = nn.CrossEntropyLoss(weight=class_weights)
-loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
+loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
@@ -98,7 +99,8 @@ val_f1_history = []
 train_loss_history = []
 val_loss_history = []
 
-
+X_train_flat = X_train.reshape(X_train.shape[0], -1)
+plot_all_features_with_pca(X_train_flat, y_train, n_components=3)
 
 # Training and Evaluation Loop
 for epoch in range(n_epochs):
@@ -210,18 +212,18 @@ for epoch in range(n_epochs):
     #plt.ylabel("Häufigkeit")
     #plt.title("Verteilung der Feature-Extractor-Ausgaben")
     #plt.show()
-    plot_all_features_with_pca(all_features[:-1], all_labels[:-1], n_components=3)
+    #plot_all_features_with_pca(all_features[:-1], all_labels[:-1], n_components=3)
 
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)
 avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
 
 print(
-    f"Average Validation Precision: {avg_val_precision:.4f}\n"
+    #f"Average Validation Precision: {avg_val_precision:.4f}\n"
     f"Best Validation Precision: {val_precision_history[best_epoch - 1]:.4f}\n"
-    f"Average Validation Recall: {avg_val_recall:.4f}\n"
+    #f"Average Validation Recall: {avg_val_recall:.4f}\n"
     f"Best Validation Recall: {val_recall_history[best_epoch - 1]:.4f}\n"
-    f"Average Validation F1: {avg_val_f1:.4f}\n"
+    #f"Average Validation F1: {avg_val_f1:.4f}\n"
     f"Best Validation F1: {val_f1_history[best_epoch - 1]:.4f}"
 )
 

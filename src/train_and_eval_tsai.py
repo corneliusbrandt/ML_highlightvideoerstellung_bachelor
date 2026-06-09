@@ -70,10 +70,10 @@ n_channels = X_train.shape[1]
 n_classes = len(np.unique(y_train))
 
 
-model = InceptionTime(
+model = ResNet(
     c_in=n_channels,
     c_out=n_classes,
-    seq_len=X_train.shape[2]
+    #seq_len=X_train.shape[2]
 )
 
 print("n_channels:", n_channels)
@@ -84,7 +84,7 @@ print("n_classes:", n_classes)
 # create Learner
 # -----------------------------
 
-class_weights = calculate_class_weights(y_train, scaling_factor=2.5, min_weight=1.5)
+class_weights = calculate_class_weights(y_train, num_classes=n_classes, scaling_factor=2.5, min_weight=1.5)
 loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=n_classes)
 
 learn = Learner(
@@ -94,7 +94,7 @@ learn = Learner(
     opt_func=Adam,
     metrics=[accuracy, F1Score(average='binary'), Precision(average='binary'), Recall(average='binary')],
     path=Path("src/Models"),
-    cbs = [SaveModel(fname="best_model_INCEPTIONTIME_tsai", verbose=True)]
+    cbs = [SaveModel(fname="best_model_RESNET_tsai", verbose=True)]
 )
 
 
