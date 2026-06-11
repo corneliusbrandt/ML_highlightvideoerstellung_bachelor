@@ -10,8 +10,8 @@ from helper import calculate_class_weights
 # -----------------------------
 # load data
 # -----------------------------
-X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
-X_val, y_val = load_data("datasets_output/val_dataset_binary.npz")
+X_train, y_train = load_data("datasets_output/train_dataset_augmented.npz")
+X_val, y_val = load_data("datasets_output/val_dataset.npz")
 
 
 # -----------------------------
@@ -70,7 +70,7 @@ n_channels = X_train.shape[1]
 n_classes = len(np.unique(y_train))
 
 
-model = ResNet(
+model = FCN(
     c_in=n_channels,
     c_out=n_classes,
     #seq_len=X_train.shape[2]
@@ -84,7 +84,7 @@ print("n_classes:", n_classes)
 # create Learner
 # -----------------------------
 
-class_weights = calculate_class_weights(y_train, num_classes=n_classes, scaling_factor=2.5, min_weight=1.5)
+class_weights = calculate_class_weights(y_train, num_classes=n_classes, scaling_factor=2, min_weight=0.01)
 loss_function = FocalLoss(gamma=3, alpha=class_weights, task_type='multi-class', num_classes=n_classes)
 
 learn = Learner(
@@ -92,9 +92,9 @@ learn = Learner(
     model,
     loss_func=loss_function,
     opt_func=Adam,
-    metrics=[accuracy, F1Score(average='binary'), Precision(average='binary'), Recall(average='binary')],
+    metrics=[accuracy, F1Score(average='macro'), Precision(average='macro'), Recall(average='macro')],
     path=Path("src/Models"),
-    cbs = [SaveModel(fname="best_model_RESNET_tsai", verbose=True)]
+    cbs = [SaveModel(fname="best_model_FCN_multiclass_tsai", verbose=True)]
 )
 
 
@@ -124,7 +124,7 @@ y_pred = np.argmax(probs, axis=1)
 print("\n--- Prediction mit argmax ---")
 print(confusion_matrix(y_true, y_pred))
 print(classification_report(y_true, y_pred, zero_division=0))
-print("F1:", f1_score(y_true, y_pred, zero_division=0))
+print("F1:", f1_score(y_true, y_pred, zero_division=0, average='macro'))
 
 
 # -----------------------------
@@ -139,4 +139,4 @@ print("\n--- Prediction with Threshold ---")
 print("Threshold:", threshold)
 print(confusion_matrix(y_true, y_pred_threshold))
 print(classification_report(y_true, y_pred_threshold, zero_division=0))
-print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0))
+print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average='macro'))

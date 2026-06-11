@@ -48,7 +48,7 @@ best_epoch = 0
 threshold = 0.57
 
 # saving the best model
-best_model_path = r"src\Models\best_model.pth"
+best_model_path = r"src\Models\best_model_multiclass.pth"
 
 
 

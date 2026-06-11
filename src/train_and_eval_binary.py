@@ -2,7 +2,7 @@ from helper import calculate_class_weights, load_data, plot_loss_history, plot_a
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix)
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, roc_auc_score)
 from focal_loss import FocalLoss
 from model_architecures import CNN1D_V1, CNN1D_V2, CNN1D_V3
 import matplotlib.pyplot as plt
@@ -33,9 +33,9 @@ num_channels = 27
 #Training Loop
 n_epochs = 200
 learning_rate = 0.00001
-weight_scaling_factor = 2
+weight_scaling_factor = 3
 min_weight = 0.01
-gamma = 2
+gamma = 1.5
 
 # Early Stopping Parameters
 early_stopping_patience = 20
@@ -48,7 +48,7 @@ best_epoch = 0
 threshold = 0.57
 
 # saving the best model
-best_model_path = r"src\Models\best_model.pth"
+best_model_path = r"src\Models\best_model_binary.pth"
 
 
 
@@ -99,8 +99,8 @@ val_f1_history = []
 train_loss_history = []
 val_loss_history = []
 
-X_train_flat = X_train.reshape(X_train.shape[0], -1)
-plot_all_features_with_pca(X_train_flat, y_train, n_components=3)
+#X_train_flat = X_train.reshape(X_train.shape[0], -1)
+#plot_all_features_with_pca(X_train_flat, y_train, n_components=3)
 
 # Training and Evaluation Loop
 for epoch in range(n_epochs):

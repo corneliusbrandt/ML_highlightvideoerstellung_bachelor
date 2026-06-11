@@ -92,14 +92,14 @@ val_dataset = Dataset(X_val, y_val)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 # Calculate class weights for imbalanced dataset
-class_weights = calculate_class_weights(y_train, scaling_factor=weight_scaling_factor, min_weight=min_weight)
+class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
 print(f"Class Weights: {class_weights}")
 
 # Initialize Model, Loss Function and Optimizer
 model = CNN1D_V3(num_channels=27, num_classes=num_classes)
 
 rf = RandomForestClassifier(
-        n_estimators=10,
+        n_estimators=50,
         max_depth=None,
         class_weight='balanced',
         random_state=42,
