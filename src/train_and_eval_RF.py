@@ -87,7 +87,7 @@ X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz
 train_dataset = Dataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-X_val, y_val = load_data("datasets_output/val_dataset_binary.npz")
+X_val, y_val = load_data("datasets_output/val_dataset_augmented_binary.npz")
 val_dataset = Dataset(X_val, y_val)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 

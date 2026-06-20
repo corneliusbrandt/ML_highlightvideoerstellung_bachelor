@@ -38,7 +38,7 @@ Changes from V1:
 - Added Dropout after each convolutional layer to reduce overfitting.
 - Reduced the number of filters in the convolutional layers to prevent overfitting and reduce computational complexity.
 - Smaller classifier
-- Smaller Architecure overall to prevent overfitting.
+- Smaller Architecture overall to prevent overfitting.
 '''
 
 class CNN1D_V2(nn.Module):
@@ -96,8 +96,8 @@ class CNN1D_V3(nn.Module):
             nn.MaxPool1d(kernel_size=2),
 
 
-            nn.Conv1d(32, 32, kernel_size=25, padding=12),
-            nn.BatchNorm1d(32),
+            nn.Conv1d(32, 64, kernel_size=25, padding=12),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Dropout(0.3),
 
@@ -108,10 +108,10 @@ class CNN1D_V3(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(32, 16),
+            nn.Linear(64, 32),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(16, num_classes)
+            nn.Linear(32, num_classes)
         )
 
     def forward(self, x):
