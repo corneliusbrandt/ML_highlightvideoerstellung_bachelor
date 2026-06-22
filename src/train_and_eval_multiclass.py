@@ -34,9 +34,9 @@ num_channels = 27
 #Training Loop
 n_epochs = 2000
 learning_rate = 0.00001
-weight_scaling_factor = 3
+weight_scaling_factor = 2
 min_weight = 0.01
-gamma = 2
+gamma = 3
 
 # Early Stopping Parameters
 early_stopping_patience = 20
@@ -51,7 +51,7 @@ early_stopping_monitor = 'f1'  # Can be 'val_loss' or 'f1'
 threshold = 0.57
 
 # saving the best model
-best_model_path = r"src\Models\best_model_multiclass.pth"
+best_model_path = r"src\Models\CNN_multiclass.pth"
 
 
 
@@ -72,30 +72,32 @@ class Dataset(Dataset):
         return self.X[idx], self.y[idx]
     
 
-
+#------------------------------------------------------------------
 # Import Data and prepare it for Training
+#------------------------------------------------------------------
 X_train, y_train = load_data("datasets_output/train_dataset_augmented.npz")
 train_dataset = Dataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
 X_val, y_val = load_data("datasets_output/val_dataset_augmented.npz")
 val_dataset = Dataset(X_val, y_val)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-
+#-------------------------------------------------------------------------
 # Calculate class weights for imbalanced dataset
+#-------------------------------------------------------------------------
 class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
 print(f"Class Weights: {class_weights}")
 
+#------------------------------------------------------------------------
 # Initialize Model, Loss Function and Optimizer
+#------------------------------------------------------------------------
 model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
-#loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
-
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-
+#------------------------------------------------------------------------
 # Containers for average metric calculation and history tracking
+#------------------------------------------------------------------------
 val_precision_history = []
 val_recall_history = []
 val_f1_history = []
@@ -103,8 +105,9 @@ train_loss_history = []
 val_loss_history = []
 
 
-
-# Training and Evaluation Loop
+#--------------------------------------------------------------------------
+# Training Loop
+#--------------------------------------------------------------------------
 for epoch in range(n_epochs):
     model.train()
 
@@ -131,8 +134,9 @@ for epoch in range(n_epochs):
     train_accuracy = train_correct / train_total
     avg_train_loss = train_loss / len(train_loader)
 
-
-    # Validation, In validation mode a softmax funcion is applied to make use of a threshold for binary classification
+#--------------------------------------------------------------------------
+# Validation
+#--------------------------------------------------------------------------
     model.eval()
 
     with torch.no_grad():
@@ -171,7 +175,9 @@ for epoch in range(n_epochs):
     train_loss_history.append(avg_train_loss)
     val_loss_history.append(avg_val_loss)
 
-    # Calculate metrics
+#--------------------------------------------------------------------------
+# Calculate metrics
+#--------------------------------------------------------------------------
     val_accuracy = accuracy_score(all_labels, all_preds)
     val_precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     val_precision_history.append(val_precision)
@@ -182,6 +188,9 @@ for epoch in range(n_epochs):
     val_confusion_matrix = confusion_matrix(all_labels, all_preds, labels=list(range(num_classes)))
 
 
+#------------------------------------------------------------------------
+# Early Stopping Check
+#------------------------------------------------------------------------
     if early_stopping_monitor == 'f1':
         if val_f1 > best_f1_score:
             best_f1_score = val_f1
@@ -209,6 +218,9 @@ for epoch in range(n_epochs):
             print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
             break
 
+#-------------------------------------------------------------------------
+# Print Epoch Summary
+#-------------------------------------------------------------------------
     print(
         f"Epoch {epoch+1}/{n_epochs}, "
         f"Train Loss: {avg_train_loss:.4f}, "
@@ -227,10 +239,13 @@ for epoch in range(n_epochs):
     #plt.show()
     #plot_all_features_with_pca(all_features[:-1], all_labels[:-1], n_components=3)
 
+
+#-------------------------------------------------------------------------
+# Final Metrics Summary
+#-------------------------------------------------------------------------
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)
 avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
-
 
 
 print(
@@ -243,6 +258,5 @@ print(
 )
 
 summary(model, input_size=(batch_size, num_channels, 120))
-
 plot_loss_history(train_loss_history, val_loss_history)
 

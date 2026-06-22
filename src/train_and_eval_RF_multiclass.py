@@ -67,13 +67,12 @@ batch_size = 32
 num_classes = 6
 num_channels = 27
 
-
 #Training Loop
 n_epochs = 2000
 learning_rate = 0.00001
 weight_scaling_factor = 3
 min_weight = 0.01
-gamma = 2
+gamma = 3
 
 # Early Stopping Parameters
 early_stopping_patience = 20
@@ -84,30 +83,29 @@ epochs_without_improvement = 0
 best_epoch = 0
 early_stopping_monitor = 'f1'  # Can be 'val_loss' or 'f1'
 
-# threshold for converting probabilities to binary predictions
-threshold = 0.57
-
 # saving the best model
-best_model_path = r"src\Models\best_model_RF_multiclass.pth"
+best_model_path = r"src\Models\RF_multiclass.pth"
 
 
-
-
-
+#----------------------------------------------------------------------------
 # Import Data and prepare it for Training
+#----------------------------------------------------------------------------
 X_train, y_train = load_data("datasets_output/train_dataset_augmented.npz")
 train_dataset = Dataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
 X_val, y_val = load_data("datasets_output/val_dataset_augmented.npz")
 val_dataset = Dataset(X_val, y_val)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
+#----------------------------------------------------------------------------
 # Calculate class weights for imbalanced dataset
+#----------------------------------------------------------------------------
 class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
 print(f"Class Weights: {class_weights}")
 
+#----------------------------------------------------------------------------
 # Initialize Model, Loss Function and Optimizer
+#----------------------------------------------------------------------------
 model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
 
 rf = RandomForestClassifier(
@@ -117,13 +115,12 @@ rf = RandomForestClassifier(
         random_state=42,
     )
 
-#loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
-
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-
+#----------------------------------------------------------------------------
 # Containers for average metric calculation and history tracking
+#----------------------------------------------------------------------------
 val_precision_history = []
 val_recall_history = []
 val_f1_history = []
@@ -131,8 +128,9 @@ train_loss_history = []
 val_loss_history = []
 
 
-
-# Training and Evaluation Loop
+#----------------------------------------------------------------------------
+# Training Loop
+#----------------------------------------------------------------------------
 for epoch in range(n_epochs):
     model.train()
 
@@ -160,22 +158,23 @@ for epoch in range(n_epochs):
     train_accuracy = train_correct / train_total
     avg_train_loss = train_loss / len(train_loader)
 
-
-    # Train Random Forest on extracted features
+   
     X_train_features, y_train_labels = get_features_and_labels(model, train_loader)
     X_val_features, y_val_labels = get_features_and_labels(model, val_loader)
-
     rf.fit(X_train_features, y_train_labels)
-    preds = rf.predict(X_val_features)
 
+    #----------------------------------------------------------------------------
+    # Validation
     # Warning: the loss here is just so the early stopping can work, it is not the same as the one used
     # for the training model and the two should not be compared
+    #----------------------------------------------------------------------------
+    preds = rf.predict(X_val_features)
     val_loss = log_loss(y_val_labels, rf.predict_proba(X_val_features), labels=list(range(num_classes)))
-    #val_loss = loss_function(torch.tensor(preds), torch.tensor(y_val_labels)).item()
     
-
-    # Calculate metrics and print results
-    avg_val_loss = val_loss / len(val_loader)
+    #----------------------------------------------------------------------------
+    # Calculate metrics
+    #----------------------------------------------------------------------------
+    avg_val_loss = val_loss
     train_loss_history.append(avg_train_loss)
     val_loss_history.append(avg_val_loss)
 
@@ -188,20 +187,9 @@ for epoch in range(n_epochs):
     val_f1_history.append(val_f1)
     val_confusion_matrix = confusion_matrix(y_val_labels, preds, labels=list(range(num_classes)))
 
-    print(
-        f"Epoch {epoch+1}/{n_epochs}, "
-        f"Train Loss: {avg_train_loss:.4f}, "
-        f"Train Acc: {train_accuracy:.4f}, "
-        f"Val Loss: {avg_val_loss:.4f}, "
-        f"Val Acc: {val_accuracy:.4f}, "
-        f"Val F1: {val_f1:.4f},"
-        f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
-    )
-
-    print(classification_report(y_val_labels, preds, labels=list(range(num_classes)), zero_division=0))
-
-
+    #-------------------------------------------------------------------------
     # Early stopping
+    #-------------------------------------------------------------------------
     if early_stopping_monitor == 'f1':
         if val_f1 > best_f1_score:
             best_f1_score = val_f1
@@ -230,7 +218,27 @@ for epoch in range(n_epochs):
             print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
             break
 
-    
+
+
+    #------------------------------------------------------------------------
+    # Print Epoch Summary
+    #------------------------------------------------------------------------
+    print(
+        f"Epoch {epoch+1}/{n_epochs}, "
+        f"Train Loss: {avg_train_loss:.4f}, "
+        f"Train Acc: {train_accuracy:.4f}, "
+        f"Val Loss: {avg_val_loss:.4f}, "
+        f"Val Acc: {val_accuracy:.4f}, "
+        f"Val F1: {val_f1:.4f},"
+        f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
+    )
+
+    print(classification_report(y_val_labels, preds, labels=list(range(num_classes)), zero_division=0))
+
+
+#------------------------------------------------------------------------
+# Final Metrics Summary
+#------------------------------------------------------------------------    
 
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)

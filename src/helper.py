@@ -4,12 +4,11 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+import pickle
 
 
 # Useful functions can be defined here so that they can be imported into other files
 # -> better code organization and reusability
-
-
 
 def load_data(dataset_path):
     data = np.load(dataset_path)
@@ -18,6 +17,7 @@ def load_data(dataset_path):
     y = data['y']
 
     return X, y
+
 
 def format_data_for_pytorch(X, y):
     # reshape X to (num_samples, num_channels, num_time_steps)
@@ -55,6 +55,7 @@ def plot_loss_history(train_loss_history, val_loss_history):
     plt.grid()
     plt.show()
 
+
 def plot_all_features_with_pca(all_features, all_labels, n_components=3):
     
     pca = PCA(n_components=n_components)
@@ -79,5 +80,16 @@ def plot_all_features_with_pca(all_features, all_labels, n_components=3):
     ax.legend(*scatter.legend_elements(), title="Classes")
 
     plt.show()
+
+
+def save_and_load_pickle(data, path, mode='save'):
+    if mode == 'save':
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
+    elif mode == 'load':
+        with open(path, 'rb') as f:
+            return pickle.load(f)
+    else:
+        raise ValueError("Mode must be either 'save' or 'load'")
 
 

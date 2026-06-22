@@ -5,8 +5,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, roc_auc_score)
 from focal_loss import FocalLoss
 from model_architecures import CNN1D_V1, CNN1D_V2, CNN1D_V3
-import matplotlib.pyplot as plt
 import numpy as np
+from torchinfo import summary
+
 
 
 '''
@@ -33,9 +34,9 @@ num_channels = 27
 #Training Loop
 n_epochs = 200
 learning_rate = 0.00001
-weight_scaling_factor = 3
+weight_scaling_factor = 2
 min_weight = 0.01
-gamma = 1.5
+gamma = 3
 
 # Early Stopping Parameters
 early_stopping_patience = 20
@@ -43,12 +44,14 @@ best_val_loss = float('inf')
 min_delta = 0.0001
 epochs_without_improvement = 0
 best_epoch = 0
+best_f1_score = 0.0
+early_stopping_monitor = 'f1'  # Can be 'val_loss' or 'f1'
 
 # threshold for converting probabilities to binary predictions
 threshold = 0.57
 
 # saving the best model
-best_model_path = r"src\Models\best_model_binary.pth"
+best_model_path = r"src\Models\CNN_binary.pth"
 
 
 
@@ -69,30 +72,32 @@ class Dataset(Dataset):
         return self.X[idx], self.y[idx]
     
 
-
+#------------------------------------------------------------------
 # Import Data and prepare it for Training
+#------------------------------------------------------------------
 X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
 train_dataset = Dataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
 X_val, y_val = load_data("datasets_output/val_dataset_binary.npz")
 val_dataset = Dataset(X_val, y_val)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-
+#------------------------------------------------------------------
 # Calculate class weights for imbalanced dataset
+#------------------------------------------------------------------
 class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
 print(f"Class Weights: {class_weights}")
 
+#------------------------------------------------------------------
 # Initialize Model, Loss Function and Optimizer
+#------------------------------------------------------------------
 model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
-#loss_function = nn.CrossEntropyLoss(weight=class_weights)
 loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
-
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-
+#--------------------------------------------------------------------------
 # Containers for average metric calculation and history tracking
+#--------------------------------------------------------------------------
 val_precision_history = []
 val_recall_history = []
 val_f1_history = []
@@ -102,7 +107,9 @@ val_loss_history = []
 #X_train_flat = X_train.reshape(X_train.shape[0], -1)
 #plot_all_features_with_pca(X_train_flat, y_train, n_components=3)
 
-# Training and Evaluation Loop
+#--------------------------------------------------------------------------
+# Training Loop
+#--------------------------------------------------------------------------
 for epoch in range(n_epochs):
     model.train()
 
@@ -129,8 +136,10 @@ for epoch in range(n_epochs):
     train_accuracy = train_correct / train_total
     avg_train_loss = train_loss / len(train_loader)
 
-
-    # Validation, In validation mode a softmax funcion is applied to make use of a threshold for binary classification
+#----------------------------------------------------------------------
+# Validation
+# In validation mode a softmax funcion is applied to make use of a threshold for binary classification
+#----------------------------------------------------------------------
     model.eval()
 
     with torch.no_grad():
@@ -172,21 +181,9 @@ for epoch in range(n_epochs):
     train_loss_history.append(avg_train_loss)
     val_loss_history.append(avg_val_loss)
 
-
-    if avg_val_loss < best_val_loss - min_delta:
-        best_val_loss = avg_val_loss
-        epochs_without_improvement = 0
-        best_epoch = epoch + 1
-        torch.save(model.state_dict(), best_model_path)  # Save the best model
-    else:
-        epochs_without_improvement += 1
-
-    if epochs_without_improvement >= early_stopping_patience:
-        print(f"Early stopping triggered after {epoch} epochs.")
-        print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
-        break
-
-    # Calculate metrics
+ #--------------------------------------------------------------------------
+# Calculate Metrics
+#--------------------------------------------------------------------------
     val_accuracy = accuracy_score(all_labels, all_preds)
     val_precision = precision_score(all_labels, all_preds)
     val_precision_history.append(val_precision)
@@ -196,6 +193,41 @@ for epoch in range(n_epochs):
     val_f1_history.append(val_f1)
     val_confusion_matrix = confusion_matrix(all_labels, all_preds)
 
+
+#-------------------------------------------------------------------------
+# Early Stopping Check
+#-------------------------------------------------------------------------
+    if early_stopping_monitor == 'f1':
+        if val_f1 > best_f1_score:
+            best_f1_score = val_f1
+            epochs_without_improvement = 0
+            best_epoch = epoch + 1
+            torch.save(model.state_dict(), best_model_path)  # Save the best model
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement >= early_stopping_patience:
+            print(f"Early stopping triggered after {epoch} epochs.")
+            print(f"Best F1 Score: {best_f1_score:.4f} at Epoch {best_epoch}")
+            break
+    elif early_stopping_monitor == 'val_loss':
+        if avg_val_loss < best_val_loss - min_delta:
+            best_val_loss = avg_val_loss
+            epochs_without_improvement = 0
+            best_epoch = epoch + 1
+            torch.save(model.state_dict(), best_model_path)  # Save the best model
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement >= early_stopping_patience:
+            print(f"Early stopping triggered after {epoch} epochs.")
+            print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
+            break
+
+
+#-------------------------------------------------------------------------
+# Epoch Summary
+#-------------------------------------------------------------------------
     print(
         f"Epoch {epoch+1}/{n_epochs}, "
         f"Train Loss: {avg_train_loss:.4f}, "
@@ -214,6 +246,10 @@ for epoch in range(n_epochs):
     #plt.show()
     #plot_all_features_with_pca(all_features[:-1], all_labels[:-1], n_components=3)
 
+
+#-------------------------------------------------------------------------
+# Final Metrics Summary
+#-------------------------------------------------------------------------
 avg_val_precision = sum(val_precision_history) / len(val_precision_history)
 avg_val_recall = sum(val_recall_history) / len(val_recall_history)
 avg_val_f1 = sum(val_f1_history) / len(val_f1_history)
@@ -227,5 +263,6 @@ print(
     f"Best Validation F1: {val_f1_history[best_epoch - 1]:.4f}"
 )
 
+summary(model, input_size=(batch_size, num_channels, 120))
 plot_loss_history(train_loss_history, val_loss_history)
 
