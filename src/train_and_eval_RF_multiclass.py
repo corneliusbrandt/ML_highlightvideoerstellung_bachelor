@@ -8,7 +8,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score
 )
-from helper import calculate_class_weights, load_data, plot_loss_history
+from helper import calculate_class_weights, load_data, plot_loss_history, save_and_load_pickle
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -84,7 +84,8 @@ best_epoch = 0
 early_stopping_monitor = 'f1'  # Can be 'val_loss' or 'f1'
 
 # saving the best model
-best_model_path = r"src\Models\RF_multiclass.pth"
+best_cnn_path = r"src\Models\CNN_RF\CNN_RF_multiclass.pth"
+best_rf_path = r"src\Models\CNN_RF\RF_multiclass.pkl"
 
 
 #----------------------------------------------------------------------------
@@ -195,7 +196,8 @@ for epoch in range(n_epochs):
             best_f1_score = val_f1
             epochs_without_improvement = 0
             best_epoch = epoch + 1
-            torch.save(model.state_dict(), best_model_path)  # Save the best model
+            torch.save(model.state_dict(), best_cnn_path)  # Save the best model
+            save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
         else:
             epochs_without_improvement += 1
 
@@ -209,7 +211,8 @@ for epoch in range(n_epochs):
             best_val_loss = avg_val_loss
             epochs_without_improvement = 0
             best_epoch = epoch + 1
-            torch.save(model.state_dict(), best_model_path)  # Save the best model
+            torch.save(model.state_dict(), best_cnn_path)  # Save the best model
+            save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
         else:
             epochs_without_improvement += 1
 

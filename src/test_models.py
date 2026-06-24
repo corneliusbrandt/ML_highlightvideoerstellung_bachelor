@@ -5,6 +5,7 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_s
 from model_architecures import CNN1D_V1, CNN1D_V2, CNN1D_V3
 from torchinfo import summary
 import numpy as np
+from tsai.all import *
 #from train_and_eval_RF import get_features_and_labels
 
 def get_features_and_labels(model, dataloader): 
@@ -46,7 +47,7 @@ class Dataset(Dataset):
 
 
 # Model mode (if True, the script will evaluate a combination of CNN and Random Forest)
-rf_combination = True
+rf_combination = False
 class_mode = 'binary'  # 'binary' or 'multiclass'
 
 
@@ -56,7 +57,7 @@ num_classes = 2
 num_channels = 27
 
 
-cnn_model_path = r"src\Models\CNN_RF\CNN_RF.pth"
+cnn_model_path = r"src\Models\CNN_binary.pth"
 rf_model_path = r"src\Models\CNN_RF\RF.pkl"
 
 #---------------------------
@@ -65,6 +66,10 @@ rf_model_path = r"src\Models\CNN_RF\RF.pkl"
 X_test, y_test = load_data("datasets_output/test_dataset_binary.npz")
 test_dataset = Dataset(X_test, y_test)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+print("X_test:", X_test.shape, X_test.dtype, X_test.flags["C_CONTIGUOUS"])
+print("y_test:", y_test.shape, y_test.dtype)
+print("Klassen Test:", np.unique(y_test, return_counts=True))
 
 
 #--------------------------
