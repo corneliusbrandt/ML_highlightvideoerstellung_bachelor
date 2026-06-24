@@ -96,8 +96,8 @@ class CNN1D_V3(nn.Module):
             nn.MaxPool1d(kernel_size=2),
 
 
-            nn.Conv1d(32, 64, kernel_size=25, padding=12),
-            nn.BatchNorm1d(64),
+            nn.Conv1d(32, 32, kernel_size=25, padding=12),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
 
@@ -108,10 +108,10 @@ class CNN1D_V3(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64, 32),
+            nn.Linear(32, 16),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(32, num_classes)
+            nn.Linear(16, num_classes)
         )
 
     def forward(self, x):
