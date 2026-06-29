@@ -75,20 +75,20 @@ n_channels = X_train.shape[1]
 n_classes = len(np.unique(y_train))
 
 
-model_resnet = ResNet(
-    c_in=n_channels,
-    c_out=n_classes,
-)
+# model_resnet = ResNet(
+#     c_in=n_channels,
+#     c_out=n_classes,
+# )
 
-model_inceptiontime = InceptionTime(
-    c_in=n_channels,
-    c_out=n_classes,
-)
+# model_inceptiontime = InceptionTime(
+#     c_in=n_channels,
+#     c_out=n_classes,
+# )
 
-model_FCN = FCN(
-    c_in=n_channels,
-    c_out=n_classes,
-)
+# model_FCN = FCN(
+#     c_in=n_channels,
+#     c_out=n_classes,
+# )
 
 model_omniscale = OmniScaleCNN(
     c_in=n_channels,
@@ -97,7 +97,8 @@ model_omniscale = OmniScaleCNN(
 )
 
 
-models = [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
+#models = [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
+models = [model_omniscale]
 print("n_channels:", n_channels)
 print("n_classes:", n_classes)
 
@@ -156,3 +157,5 @@ for model in models:
     print(confusion_matrix(y_true, y_pred_threshold))
     print(classification_report(y_true, y_pred_threshold, zero_division=0))
     print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average='macro'))
+
+    

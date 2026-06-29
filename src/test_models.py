@@ -47,23 +47,23 @@ class Dataset(Dataset):
 
 
 # Model mode (if True, the script will evaluate a combination of CNN and Random Forest)
-rf_combination = False
-class_mode = 'binary'  # 'binary' or 'multiclass'
+rf_combination = False # True or False
+evaluation_mode = 'multiclass'  # 'binary' or 'multiclass'
 
 
 # Datapreparation
 batch_size = 32
-num_classes = 2
+num_classes = 6
 num_channels = 27
 
 
-cnn_model_path = r"src\Models\CNN_binary.pth"
-rf_model_path = r"src\Models\CNN_RF\RF.pkl"
+cnn_model_path = r"src\Models\models\OmniScaleCNN_multiclass_tsai.pth"
+rf_model_path = r"src\Models\CNN_RF\RF_multiclass.pkl"
 
 #---------------------------
 # Load test dataset
 #---------------------------
-X_test, y_test = load_data("datasets_output/test_dataset_binary.npz")
+X_test, y_test = load_data("datasets_output/test_dataset.npz")
 test_dataset = Dataset(X_test, y_test)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -75,7 +75,11 @@ print("Klassen Test:", np.unique(y_test, return_counts=True))
 #--------------------------
 # Load the trained model
 #--------------------------
-cnn_model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
+cnn_model = OmniScaleCNN(
+    c_in=num_channels,
+    c_out=num_classes,
+    seq_len=X_test.shape[1]
+)
 cnn_model.load_state_dict(torch.load(cnn_model_path))
 rf_model = None
 
@@ -110,13 +114,33 @@ else:
 #--------------------------
 # Calculate metrics
 #--------------------------
-if class_mode == "multiclass":
+if evaluation_mode == "multiclass":
+    print("Evaluating multiclass classification metrics")
     accuracy = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
     f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
     cm = confusion_matrix(all_labels, all_preds, labels=list(range(num_classes)))
-elif class_mode == "binary":
+
+    # Convert labels and predictions to binary to be able to compare it to the binary evaluation metrics
+    print("Evalutating multiclass metrics as binary classification metrics")
+    binary_labels = np.where(np.array(all_labels) == 5, 0, 1)
+    binary_preds = np.where(np.array(all_preds) == 5, 0, 1)
+
+    accuracy_binary = accuracy_score(binary_labels, binary_preds)
+    precision_binary = precision_score(binary_labels, binary_preds, average='binary', zero_division=0)
+    recall_binary = recall_score(binary_labels, binary_preds, average='binary', zero_division=0)
+    f1_binary = f1_score(binary_labels, binary_preds, average='binary', zero_division=0)
+    cm_binary = confusion_matrix(binary_labels, binary_preds)
+
+    print(f"Test Accuracy (binary): {accuracy_binary:.4f}")
+    print(f"Test Precision (binary): {precision_binary:.4f}")
+    print(f"Test Recall (binary): {recall_binary:.4f}")
+    print(f"Test F1-Score (binary): {f1_binary:.4f}")
+    print("Confusion Matrix (binary):")
+    print(cm_binary)
+
+elif evaluation_mode == "binary":
     accuracy = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds, average='binary', zero_division=0)
     recall = recall_score(all_labels, all_preds, average='binary', zero_division=0)
@@ -129,3 +153,5 @@ print(f"Test Recall: {recall:.4f}")
 print(f"Test F1-Score: {f1:.4f}")
 print("Confusion Matrix:")
 print(cm)
+
+summary(cnn_model, input_size=(batch_size, num_channels, 120))
