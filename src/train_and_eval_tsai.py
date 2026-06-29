@@ -23,8 +23,8 @@ threshold = 0.57
 # load data
 #---------------------------------------------------------------------------
 
-X_train, y_train = load_data("datasets_output/train_dataset_augmented.npz")
-X_val, y_val = load_data("datasets_output/val_dataset_augmented.npz")
+X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
+X_val, y_val = load_data("datasets_output/val_dataset_augmented_binary.npz")
 
 #---------------------------------------------------------------------------
 # Adjust shape
@@ -75,20 +75,20 @@ n_channels = X_train.shape[1]
 n_classes = len(np.unique(y_train))
 
 
-# model_resnet = ResNet(
-#     c_in=n_channels,
-#     c_out=n_classes,
-# )
+model_resnet = ResNet(
+    c_in=n_channels,
+    c_out=n_classes,
+)
 
-# model_inceptiontime = InceptionTime(
-#     c_in=n_channels,
-#     c_out=n_classes,
-# )
+model_inceptiontime = InceptionTime(
+    c_in=n_channels,
+    c_out=n_classes,
+)
 
-# model_FCN = FCN(
-#     c_in=n_channels,
-#     c_out=n_classes,
-# )
+model_FCN = FCN(
+    c_in=n_channels,
+    c_out=n_classes,
+)
 
 model_omniscale = OmniScaleCNN(
     c_in=n_channels,
@@ -97,8 +97,7 @@ model_omniscale = OmniScaleCNN(
 )
 
 
-#models = [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
-models = [model_omniscale]
+models = [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
 print("n_channels:", n_channels)
 print("n_classes:", n_classes)
 
@@ -120,9 +119,9 @@ for model in models:
         model,
         loss_func=loss_function,
         opt_func=Adam,
-        metrics=[accuracy, F1Score(average='macro'), Precision(average='macro'), Recall(average='macro')],
+        metrics=[accuracy, F1Score(average='binary'), Precision(average='binary'), Recall(average='binary')],
         path=Path("src/Models"),
-        cbs = [SaveModel(monitor='f1_score',fname=f"{model.__class__.__name__}_multiclass_tsai", verbose=True)]
+        cbs = [SaveModel(monitor='f1_score',fname=f"{model.__class__.__name__}_binary_tsai", verbose=True)]
     )
 
 
@@ -144,7 +143,7 @@ for model in models:
     print("\n--- Prediction mit argmax ---")
     print(confusion_matrix(y_true, y_pred))
     print(classification_report(y_true, y_pred, zero_division=0))
-    print("F1:", f1_score(y_true, y_pred, zero_division=0, average='macro'))
+    print("F1:", f1_score(y_true, y_pred, zero_division=0, average='binary'))
 
 
     # prediction with threshold
@@ -156,6 +155,6 @@ for model in models:
     print("Threshold:", threshold)
     print(confusion_matrix(y_true, y_pred_threshold))
     print(classification_report(y_true, y_pred_threshold, zero_division=0))
-    print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average='macro'))
+    print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average='binary'))
 
     

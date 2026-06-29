@@ -48,22 +48,22 @@ class Dataset(Dataset):
 
 # Model mode (if True, the script will evaluate a combination of CNN and Random Forest)
 rf_combination = False # True or False
-evaluation_mode = 'multiclass'  # 'binary' or 'multiclass'
+evaluation_mode = 'binary'  # 'binary' or 'multiclass'
 
 
 # Datapreparation
 batch_size = 32
-num_classes = 6
+num_classes = 2
 num_channels = 27
 
 
-cnn_model_path = r"src\Models\models\OmniScaleCNN_multiclass_tsai.pth"
+cnn_model_path = r"src\Models\models\OmniScaleCNN_binary_tsai.pth"
 rf_model_path = r"src\Models\CNN_RF\RF_multiclass.pkl"
 
 #---------------------------
 # Load test dataset
 #---------------------------
-X_test, y_test = load_data("datasets_output/test_dataset.npz")
+X_test, y_test = load_data("datasets_output/test_dataset_binary.npz")
 test_dataset = Dataset(X_test, y_test)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
