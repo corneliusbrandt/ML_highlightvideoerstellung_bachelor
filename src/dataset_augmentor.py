@@ -1,8 +1,14 @@
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 import numpy as np
 from scipy.interpolate import CubicSpline
 from transforms3d.axangles import axangle2mat
 import matplotlib.pyplot as plt
-from helper import load_data
+from src.helper import load_data
 
 '''
 Script used for data augmentation. Main function is called in dataset_builder and creates augmented

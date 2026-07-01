@@ -1,160 +1,203 @@
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 import numpy as np
 from tsai.all import *
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
-from helper import load_data
-from focal_loss import FocalLoss
-from helper import calculate_class_weights
+from src.helper import load_data, calculate_class_weights
+from src.focal_loss import FocalLoss
 
 
-#Datapreparation
-batch_size = 32
+ModelArchitecture = Literal['ResNet', 'InceptionTime', 'FCN', 'OmniScaleCNN']
+MetricCalculation = Literal['binary', 'macro']
+Mode = Literal['binary', 'multiclass']
 
-#Training Loop
-n_epochs = 20
-learning_rate = 0.00001
-weight_scaling_factor = 2
-min_weight = 0.01
-gamma = 3
+def run_train_and_eval_tsai(debug=False,
+                            metric_calculation: MetricCalculation = 'binary',
+                            mode: Mode = 'binary',
+                            train_dataset_path="datasets_output/train_dataset_augmented_binary.npz",
+                            val_dataset_path="datasets_output/val_dataset_augmented_binary.npz",
+                            models_to_train: list[ModelArchitecture] | None = None):
 
-#threshold for converting probabilities to binary predictions
-threshold = 0.57
+    '''
+    debug: If True, print debug information
+    metric_calculation: 'binary' or 'macro'
+    mode: 'binary' or 'multiclass'
+    train_dataset_path: Path to the training dataset
+    val_dataset_path: Path to the validation dataset
+    '''
 
-#---------------------------------------------------------------------------
-# load data
-#---------------------------------------------------------------------------
+    print(f"Running train_and_eval_tsai with mode: {mode}, metric_calculation: {metric_calculation}...")
 
-X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
-X_val, y_val = load_data("datasets_output/val_dataset_augmented_binary.npz")
+    #Datapreparation
+    batch_size = 32
 
-#---------------------------------------------------------------------------
-# Adjust shape
-# from: (samples, time_steps, channels)
-# to:  (samples, channels, time_steps)
-#---------------------------------------------------------------------------
-X_train = np.transpose(X_train, (0, 2, 1))
-X_val = np.transpose(X_val, (0, 2, 1))
+    #Training Loop
+    n_epochs = 20
+    learning_rate = 0.00001
+    weight_scaling_factor = 2
+    min_weight = 0.01
+    gamma = 3
 
-#---------------------------------------------------------------------------
-# Print out data shapes and class distribution
-#---------------------------------------------------------------------------
-print("X_train:", X_train.shape, X_train.dtype, X_train.flags["C_CONTIGUOUS"])
-print("y_train:", y_train.shape, y_train.dtype)
-print("Klassen Train:", np.unique(y_train, return_counts=True))
-print("X_val:", X_val.shape, X_val.dtype, X_val.flags["C_CONTIGUOUS"])
-print("y_val:", y_val.shape, y_val.dtype)
-print("Klassen Val:", np.unique(y_val, return_counts=True))
+    #threshold for converting probabilities to binary predictions
+    threshold = 0.57
 
-#---------------------------------------------------------------------------
-# Train/Val 
-# tsai works with combined datasets and uses indices to split them -> Train and Val are NOT beeing combined
-#---------------------------------------------------------------------------
-X = np.concatenate([X_train, X_val], axis=0)
-y = np.concatenate([y_train, y_val], axis=0)
+    #---------------------------------------------------------------------------
+    # load data
+    #---------------------------------------------------------------------------
 
-train_idxs = np.arange(len(X_train))
-val_idxs = np.arange(len(X_train), len(X_train) + len(X_val))
+    X_train, y_train = load_data(train_dataset_path)
+    X_val, y_val = load_data(val_dataset_path)
 
-splits = (train_idxs, val_idxs)
+    #---------------------------------------------------------------------------
+    # Adjust shape
+    # from: (samples, time_steps, channels)
+    # to:  (samples, channels, time_steps)
+    #---------------------------------------------------------------------------
+    X_train = np.transpose(X_train, (0, 2, 1))
+    X_val = np.transpose(X_val, (0, 2, 1))
 
-#---------------------------------------------------------------------------
-# create dataloaders
-#---------------------------------------------------------------------------
-dls = get_ts_dls(
-    X,
-    y,
-    splits=splits,
-    bs=batch_size,
-    tfms=[None, TSCategorize()],
-    shuffle_train=True
-)
+    #---------------------------------------------------------------------------
+    # Print out data shapes and class distribution
+    #---------------------------------------------------------------------------
+    if debug:
+        print("X_train:", X_train.shape, X_train.dtype, X_train.flags["C_CONTIGUOUS"])
+        print("y_train:", y_train.shape, y_train.dtype)
+        print("Klassen Train:", np.unique(y_train, return_counts=True))
+        print("X_val:", X_val.shape, X_val.dtype, X_val.flags["C_CONTIGUOUS"])
+        print("y_val:", y_val.shape, y_val.dtype)
+        print("Klassen Val:", np.unique(y_val, return_counts=True))
 
-#---------------------------------------------------------------------------
-# create models
-#---------------------------------------------------------------------------
-n_channels = X_train.shape[1]
-n_classes = len(np.unique(y_train))
+    #---------------------------------------------------------------------------
+    # Train/Val 
+    # tsai works with combined datasets and uses indices to split them -> Train and Val are NOT beeing combined
+    #---------------------------------------------------------------------------
+    X = np.concatenate([X_train, X_val], axis=0)
+    y = np.concatenate([y_train, y_val], axis=0)
 
+    train_idxs = np.arange(len(X_train))
+    val_idxs = np.arange(len(X_train), len(X_train) + len(X_val))
 
-model_resnet = ResNet(
-    c_in=n_channels,
-    c_out=n_classes,
-)
+    splits = (train_idxs, val_idxs)
 
-model_inceptiontime = InceptionTime(
-    c_in=n_channels,
-    c_out=n_classes,
-)
-
-model_FCN = FCN(
-    c_in=n_channels,
-    c_out=n_classes,
-)
-
-model_omniscale = OmniScaleCNN(
-    c_in=n_channels,
-    c_out=n_classes,
-    seq_len=X_train.shape[2]
-)
-
-
-models = [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
-print("n_channels:", n_channels)
-print("n_classes:", n_classes)
-
-#---------------------------------------------------------------------------
-# Initialize class weights and loss function
-#---------------------------------------------------------------------------
-class_weights = calculate_class_weights(y_train, num_classes=n_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
-loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=n_classes)
-
-
-#---------------------------------------------------------------------------
-# Training and Evaluation Loop
-#---------------------------------------------------------------------------
-for model in models:
-    print("\n--- Training model:", model.__class__.__name__, "---")
-
-    learn = Learner(
-        dls,
-        model,
-        loss_func=loss_function,
-        opt_func=Adam,
-        metrics=[accuracy, F1Score(average='binary'), Precision(average='binary'), Recall(average='binary')],
-        path=Path("src/Models"),
-        cbs = [SaveModel(monitor='f1_score',fname=f"{model.__class__.__name__}_binary_tsai", verbose=True)]
+    #---------------------------------------------------------------------------
+    # create dataloaders
+    #---------------------------------------------------------------------------
+    dls = get_ts_dls(
+        X,
+        y,
+        splits=splits,
+        bs=batch_size,
+        tfms=[None, TSCategorize()],
+        shuffle_train=True
     )
 
+    #---------------------------------------------------------------------------
+    # create models
+    #---------------------------------------------------------------------------
+    n_channels = X_train.shape[1]
+    n_classes = len(np.unique(y_train))
 
-    # Train
-    learn.fit_one_cycle(
-        n_epoch=n_epochs,
-        lr_max=learning_rate
+
+    model_resnet = ResNet(
+        c_in=n_channels,
+        c_out=n_classes,
     )
 
+    model_inceptiontime = InceptionTime(
+        c_in=n_channels,
+        c_out=n_classes,
+    )
 
-    # Validation
-    preds, targets = learn.get_preds(ds_idx=1)
-    probs = preds.numpy()
-    y_true = targets.numpy()
-    y_pred = np.argmax(probs, axis=1)
+    model_FCN = FCN(
+        c_in=n_channels,
+        c_out=n_classes,
+    )
+
+    model_omniscale = OmniScaleCNN(
+        c_in=n_channels,
+        c_out=n_classes,
+        seq_len=X_train.shape[2]
+    )
+
+    MODEL_MAP = {
+    "ResNet": model_resnet,
+    "InceptionTime": model_inceptiontime,
+    "FCN": model_FCN,
+    "OmniScaleCNN": model_omniscale,
+}
+    models = [MODEL_MAP[name] for name in models_to_train] if models_to_train else [model_resnet, model_inceptiontime, model_FCN, model_omniscale]
+    if debug:
+        print("n_channels:", n_channels)
+        print("n_classes:", n_classes)
+
+    #---------------------------------------------------------------------------
+    # Initialize class weights and loss function
+    #---------------------------------------------------------------------------
+    class_weights = calculate_class_weights(y_train, num_classes=n_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
+    loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=n_classes)
 
 
-    # Prediction wih argmax
-    print("\n--- Prediction mit argmax ---")
-    print(confusion_matrix(y_true, y_pred))
-    print(classification_report(y_true, y_pred, zero_division=0))
-    print("F1:", f1_score(y_true, y_pred, zero_division=0, average='binary'))
+    #---------------------------------------------------------------------------
+    # Training and Evaluation Loop
+    #---------------------------------------------------------------------------
+    for model in models:
+        print("\n--- Training model:", model.__class__.__name__, "---")
+
+        learn = Learner(
+            dls,
+            model,
+            loss_func=loss_function,
+            opt_func=Adam,
+            metrics=[accuracy, F1Score(average=metric_calculation), Precision(average=metric_calculation), Recall(average=metric_calculation)],
+            path=Path("src/Models"),
+            cbs = [SaveModel(monitor='f1_score',fname=f"{model.__class__.__name__}_{mode}", verbose=True)]
+        )
 
 
-    # prediction with threshold
-    # only for binary classification
-    event_probs = probs[:, 1]
-    y_pred_threshold = (event_probs > threshold).astype(int)
+        # Train
+        learn.fit_one_cycle(
+            n_epoch=n_epochs,
+            lr_max=learning_rate
+        )
 
-    print("\n--- Prediction with Threshold ---")
-    print("Threshold:", threshold)
-    print(confusion_matrix(y_true, y_pred_threshold))
-    print(classification_report(y_true, y_pred_threshold, zero_division=0))
-    print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average='binary'))
+
+        # Validation
+        preds, targets = learn.get_preds(ds_idx=1)
+        probs = preds.numpy()
+        y_true = targets.numpy()
+        y_pred = np.argmax(probs, axis=1)
+
+
+        # Prediction wih argmax
+        print("\n--- Prediction mit argmax ---")
+        print(confusion_matrix(y_true, y_pred))
+        print(classification_report(y_true, y_pred, zero_division=0))
+        print("F1:", f1_score(y_true, y_pred, zero_division=0, average=metric_calculation))
+
+        print("------------")
+
+
+        # prediction with threshold
+        # only for binary classification
+        # event_probs = probs[:, 1]
+        # y_pred_threshold = (event_probs > threshold).astype(int)
+
+        # print("\n--- Prediction with Threshold ---")
+        # print("Threshold:", threshold)
+        # print(confusion_matrix(y_true, y_pred_threshold))
+        # print(classification_report(y_true, y_pred_threshold, zero_division=0))
+        # print("F1:", f1_score(y_true, y_pred_threshold, zero_division=0, average=metric_calculation))
+
+if __name__ == "__main__":
+    run_train_and_eval_tsai(debug=True,
+                            metric_calculation='binary',
+                            mode='binary',
+                            train_dataset_path="datasets_output/train_dataset_augmented_binary.npz",
+                            val_dataset_path="datasets_output/val_dataset_augmented_binary.npz",
+                            models_to_train=['ResNet', 'InceptionTime', 'FCN', 'OmniScaleCNN'])
 
     

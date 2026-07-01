@@ -1,15 +1,21 @@
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, log_loss
-from helper import calculate_class_weights, load_data, plot_loss_history
+from src.helper import *
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from focal_loss import FocalLoss
-from model_architecures import CNN1D_V1, CNN1D_V2, CNN1D_V3
+from src.focal_loss import FocalLoss
+from src.model_architecures import *
 import numpy as np
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, roc_auc_score)
-from helper import save_and_load_pickle
 from torchinfo import summary
+from tqdm import tqdm
 
 
 '''
@@ -54,192 +60,200 @@ class Dataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-
-# Data preparation
-batch_size = 32
-num_classes = 2
-num_channels = 27
-
-
-#Training Loop
-n_epochs = 200
-learning_rate = 0.00001
-weight_scaling_factor = 2
-min_weight = 0.01
-gamma = 3
-
-# Early Stopping Parameters
-early_stopping_patience = 20
-best_val_loss = float('inf')
-best_f1_score = 0.0
-min_delta = 0.0001
-epochs_without_improvement = 0
-best_epoch = 0
-early_stopping_monitor = 'f1'  # Options: 'val_loss' or 'f1'
-
-# saving the best model
-best_cnn_path = r"src\Models\CNN_RF\CNN_RF.pth"
-best_rf_path = r"src\Models\CNN_RF\RF.pkl"
+def run_train_and_eval_RF_binary(debug=False):
+    print("Running train_and_eval_RF_binary...")
+    # Data preparation
+    batch_size = 32
+    num_classes = 2
+    num_channels = 27
 
 
-#---------------------------------------------------------------------------
-# Import Data and prepare it for Training
-#---------------------------------------------------------------------------
-X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
-train_dataset = Dataset(X_train, y_train)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-X_val, y_val = load_data("datasets_output/val_dataset_augmented_binary.npz")
-val_dataset = Dataset(X_val, y_val)
-val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    #Training Loop
+    n_epochs = 200
+    learning_rate = 0.00001
+    weight_scaling_factor = 2
+    min_weight = 0.01
+    gamma = 3
 
-#--------------------------------------------------------------------------
-# Calculate class weights for imbalanced dataset
-#--------------------------------------------------------------------------
-class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
-print(f"Class Weights: {class_weights}")
+    # Early Stopping Parameters
+    early_stopping_patience = 20
+    best_val_loss = float('inf')
+    best_f1_score = 0.0
+    min_delta = 0.0001
+    epochs_without_improvement = 0
+    best_epoch = 0
+    early_stopping_monitor = 'f1'  # Options: 'val_loss' or 'f1'
 
-#--------------------------------------------------------------------------
-# Initialize Model, Loss Function and Optimizer
-#--------------------------------------------------------------------------
-model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
-rf = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=None,
-        class_weight='balanced',
-        random_state=42,
-    )
-loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+    # saving the best model
+    best_cnn_path = r"src\Models\CNN_RF\CNN_RF_binary.pth"
+    best_rf_path = r"src\Models\CNN_RF\RF_binary.pkl"
 
 
-#-------------------------------------------------------------------------
-# Containers for average metric calculation and history tracking
-#-------------------------------------------------------------------------
-train_loss_history = []
-val_loss_history = []
-val_precision_history = []
-val_recall_history = []
-val_f1_history = []
+    #---------------------------------------------------------------------------
+    # Import Data and prepare it for Training
+    #---------------------------------------------------------------------------
+    X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
+    train_dataset = Dataset(X_train, y_train)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    X_val, y_val = load_data("datasets_output/val_dataset_augmented_binary.npz")
+    val_dataset = Dataset(X_val, y_val)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+    #--------------------------------------------------------------------------
+    # Calculate class weights for imbalanced dataset
+    #--------------------------------------------------------------------------
+    class_weights = calculate_class_weights(y_train, num_classes=num_classes, scaling_factor=weight_scaling_factor, min_weight=min_weight)
+    print(f"Class Weights: {class_weights}")
+
+    #--------------------------------------------------------------------------
+    # Initialize Model, Loss Function and Optimizer
+    #--------------------------------------------------------------------------
+    model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
+    rf = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=None,
+            class_weight='balanced',
+            random_state=42,
+        )
+    loss_function = FocalLoss(gamma=gamma, alpha=class_weights, task_type='multi-class', num_classes=num_classes)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 
-#-------------------------------------------------------------------------
-# Training Loop
-#-------------------------------------------------------------------------
-for epoch in range(n_epochs):
-    model.train()
-
-    train_loss = 0
-    train_correct = 0
-    train_total = 0
-    val_loss = 0
-    val_correct = 0
-    val_total = 0
-
-    for X_batch, y_batch in train_loader:
-        pred_logit = model(X_batch)
-        loss = loss_function(pred_logit, y_batch)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        train_loss += loss.item()
-
-        pred = torch.argmax(pred_logit, dim=1)
-        train_correct += (pred == y_batch).sum().item()
-        train_total += y_batch.size(0)
-
-    train_accuracy = train_correct / train_total
-    avg_train_loss = train_loss / len(train_loader)
+    #-------------------------------------------------------------------------
+    # Containers for average metric calculation and history tracking
+    #-------------------------------------------------------------------------
+    train_loss_history = []
+    val_loss_history = []
+    val_precision_history = []
+    val_recall_history = []
+    val_f1_history = []
 
 
-    # Train Random Forest on extracted features
-    X_train_features, y_train_labels = get_features_and_labels(model, train_loader)
-    X_val_features, y_val_labels = get_features_and_labels(model, val_loader)
-    rf.fit(X_train_features, y_train_labels)
+    #-------------------------------------------------------------------------
+    # Training Loop
+    #-------------------------------------------------------------------------
+    for epoch in range(n_epochs):
+        model.train()
 
-    #--------------------------------------------------------------------------------------
-    # Validation
-    # Warning: the loss here is just so the early stopping can work, it is not the same as the one used
-    # for the training model and the two should not be compared
-    #---------------------------------------------------------------------------------------
-    preds = rf.predict(X_val_features)
-    val_loss = log_loss(y_val_labels, rf.predict_proba(X_val_features))
-    
-    #-------------------------------------------------------------------------------------
-    # Calculate metrics
-    #-------------------------------------------------------------------------------------
-    avg_val_loss = val_loss
-    train_loss_history.append(avg_train_loss)
-    val_loss_history.append(avg_val_loss)
-    val_accuracy = accuracy_score(y_val_labels, preds)
-    val_precision = precision_score(y_val_labels, preds)
-    val_precision_history.append(val_precision)
-    val_recall = recall_score(y_val_labels, preds)
-    val_recall_history.append(val_recall)
-    val_f1 = f1_score(y_val_labels, preds)
-    val_f1_history.append(val_f1)
-    val_confusion_matrix = confusion_matrix(y_val_labels, preds)
+        train_loss = 0
+        train_correct = 0
+        train_total = 0
+        val_loss = 0
+        val_correct = 0
+        val_total = 0
 
-    #-------------------------------------------------------------------------------------
-    # Early stopping
-    #-------------------------------------------------------------------------------------
-    if early_stopping_monitor == 'f1':
-        if val_f1 > best_f1_score:
-            best_f1_score = val_f1
-            epochs_without_improvement = 0
-            best_epoch = epoch + 1
-            torch.save(model.state_dict(), best_cnn_path)  # Save the best model
-            save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
-            
-        else:
-            epochs_without_improvement += 1
+        for X_batch, y_batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs}", leave=False):
+            pred_logit = model(X_batch)
+            loss = loss_function(pred_logit, y_batch)
 
-        if epochs_without_improvement >= early_stopping_patience:
-            print(f"Early stopping triggered after {epoch} epochs.")
-            print(f"Best F1 Score: {best_f1_score:.4f} at Epoch {best_epoch}")
-            break
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-    elif early_stopping_monitor == 'val_loss':
-        if avg_val_loss < best_val_loss - min_delta:
-            best_val_loss = avg_val_loss
-            epochs_without_improvement = 0
-            best_epoch = epoch + 1
-            torch.save(model.state_dict(), best_cnn_path)  # Save the best model
-            save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
-        else:
-            epochs_without_improvement += 1
+            train_loss += loss.item()
 
-        if epochs_without_improvement >= early_stopping_patience:
-            print(f"Early stopping triggered after {epoch} epochs.")
-            print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
-            break
+            pred = torch.argmax(pred_logit, dim=1)
+            train_correct += (pred == y_batch).sum().item()
+            train_total += y_batch.size(0)
+
+        train_accuracy = train_correct / train_total
+        avg_train_loss = train_loss / len(train_loader)
 
 
+        # Train Random Forest on extracted features
+        X_train_features, y_train_labels = get_features_and_labels(model, train_loader)
+        X_val_features, y_val_labels = get_features_and_labels(model, val_loader)
+        rf.fit(X_train_features, y_train_labels)
 
-#------------------------------------------------------------------------
-# Print Epoch Summary
-#------------------------------------------------------------------------
+        #--------------------------------------------------------------------------------------
+        # Validation
+        # Warning: the loss here is just so the early stopping can work, it is not the same as the one used
+        # for the training model and the two should not be compared
+        #---------------------------------------------------------------------------------------
+        preds = rf.predict(X_val_features)
+        val_loss = log_loss(y_val_labels, rf.predict_proba(X_val_features))
+        
+        #-------------------------------------------------------------------------------------
+        # Calculate metrics
+        #-------------------------------------------------------------------------------------
+        avg_val_loss = val_loss
+        train_loss_history.append(avg_train_loss)
+        val_loss_history.append(avg_val_loss)
+        val_accuracy = accuracy_score(y_val_labels, preds)
+        val_precision = precision_score(y_val_labels, preds)
+        val_precision_history.append(val_precision)
+        val_recall = recall_score(y_val_labels, preds)
+        val_recall_history.append(val_recall)
+        val_f1 = f1_score(y_val_labels, preds)
+        val_f1_history.append(val_f1)
+        val_confusion_matrix = confusion_matrix(y_val_labels, preds)
+
+        #-------------------------------------------------------------------------------------
+        # Early stopping
+        #-------------------------------------------------------------------------------------
+        if early_stopping_monitor == 'f1':
+            if val_f1 > best_f1_score:
+                best_f1_score = val_f1
+                epochs_without_improvement = 0
+                best_epoch = epoch + 1
+                torch.save(model.state_dict(), best_cnn_path)  # Save the best model
+                save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
+                
+            else:
+                epochs_without_improvement += 1
+
+            if epochs_without_improvement >= early_stopping_patience:
+                print(f"Early stopping triggered after {epoch} epochs.")
+                print(f"Best F1 Score: {best_f1_score:.4f} at Epoch {best_epoch}")
+                break
+
+        elif early_stopping_monitor == 'val_loss':
+            if avg_val_loss < best_val_loss - min_delta:
+                best_val_loss = avg_val_loss
+                epochs_without_improvement = 0
+                best_epoch = epoch + 1
+                torch.save(model.state_dict(), best_cnn_path)  # Save the best model
+                save_and_load_pickle(rf, best_rf_path, 'save')  # Save the best Random Forest classifier
+            else:
+                epochs_without_improvement += 1
+
+            if epochs_without_improvement >= early_stopping_patience:
+                print(f"Early stopping triggered after {epoch} epochs.")
+                print(f"Best Validation Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
+                break
+
+
+
+    #------------------------------------------------------------------------
+    # Print Epoch Summary
+    #------------------------------------------------------------------------
+        if debug:
+            print(
+                f"Epoch {epoch+1}/{n_epochs}, "
+                f"Train Loss: {avg_train_loss:.4f}, "
+                f"Train Acc: {train_accuracy:.4f}, "
+                f"Val Loss: {avg_val_loss:.4f}, "
+                f"Val Acc: {val_accuracy:.4f}, "
+                f"Val F1: {val_f1:.4f},"
+                f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
+            )
+
+
+
+    #-------------------------------------------------------------------------
+    # Final Metrics Summary
+    #-------------------------------------------------------------------------
     print(
-        f"Epoch {epoch+1}/{n_epochs}, "
-        f"Train Loss: {avg_train_loss:.4f}, "
-        f"Train Acc: {train_accuracy:.4f}, "
-        f"Val Loss: {avg_val_loss:.4f}, "
-        f"Val Acc: {val_accuracy:.4f}, "
-        f"Val F1: {val_f1:.4f},"
-        f"\nVal Confusion Matrix:\n{val_confusion_matrix}"
+        f"Best Validation Precision: {val_precision_history[best_epoch - 1]:.4f}\n"
+        f"Best Validation Recall: {val_recall_history[best_epoch - 1]:.4f}\n"
+        f"Best Validation F1: {val_f1_history[best_epoch - 1]:.4f}"
     )
 
+    if debug:
+        summary(model, input_size=(batch_size, num_channels, 120))
+        plot_loss_history(train_loss_history, val_loss_history)
 
+    print("------------")
 
-#-------------------------------------------------------------------------
-# Final Metrics Summary
-#-------------------------------------------------------------------------
-print(
-    f"Best Validation Precision: {val_precision_history[best_epoch - 1]:.4f}\n"
-    f"Best Validation Recall: {val_recall_history[best_epoch - 1]:.4f}\n"
-    f"Best Validation F1: {val_f1_history[best_epoch - 1]:.4f}"
-)
-
-summary(model, input_size=(batch_size, num_channels, 120))
-plot_loss_history(train_loss_history, val_loss_history)
+if __name__ == "__main__":
+    run_train_and_eval_RF_binary(debug=True)

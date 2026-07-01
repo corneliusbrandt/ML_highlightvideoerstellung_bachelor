@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 class CNN1D_V1(nn.Module):

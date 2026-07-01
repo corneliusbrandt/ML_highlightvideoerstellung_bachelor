@@ -1,7 +1,17 @@
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 import numpy as np
 from aeon.classification.hybrid import HIVECOTEV2
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
-from helper import load_data
+from src.helper import load_data
+
+'''
+Warning: This script is not integrated into the full pipline yet. It is a standalone script for training and evaluating the HIVE-COTE model.
+'''
 
 X_train, y_train = load_data("datasets_output/train_dataset_augmented_binary.npz")
 X_val, y_val = load_data("datasets_output/val_dataset_binary.npz")
