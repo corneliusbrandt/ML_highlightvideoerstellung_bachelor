@@ -110,7 +110,7 @@ def run_train_and_eval_RF_binary(debug=False):
     #--------------------------------------------------------------------------
     model = CNN1D_V3(num_channels=num_channels, num_classes=num_classes)
     rf = RandomForestClassifier(
-            n_estimators=100,
+            n_estimators=50,
             max_depth=None,
             class_weight='balanced',
             random_state=42,

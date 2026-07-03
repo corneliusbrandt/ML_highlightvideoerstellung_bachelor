@@ -36,7 +36,7 @@ def run_train_and_eval_tsai(debug=False,
     batch_size = 32
 
     #Training Loop
-    n_epochs = 20
+    n_epochs = 10
     learning_rate = 0.00001
     weight_scaling_factor = 2
     min_weight = 0.01
