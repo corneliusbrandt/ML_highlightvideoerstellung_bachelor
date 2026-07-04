@@ -172,7 +172,18 @@ def run_train_and_eval_RF_multiclass(debug=False):
         # for the training model and the two should not be compared
         #----------------------------------------------------------------------------
         preds = rf.predict(X_val_features)
-        val_loss = log_loss(y_val_labels, rf.predict_proba(X_val_features), labels=list(range(num_classes)))
+        proba = rf.predict_proba(X_val_features)
+
+        proba_full = np.zeros((proba.shape[0], num_classes))
+
+        for i, cls in enumerate(rf.classes_):
+            proba_full[:, cls] = proba[:, i]
+
+        val_loss = log_loss(
+            y_val_labels,
+            proba_full,
+            labels=list(range(num_classes))
+            )
         
         #----------------------------------------------------------------------------
         # Calculate metrics

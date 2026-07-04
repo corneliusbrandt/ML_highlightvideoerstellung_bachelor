@@ -46,12 +46,12 @@ notebook_path = "dataset_builder.ipynb"
 n_iterations = 10
 
 models = [
-    #"CNN1D_binary", "CNN1D_multiclass",
+    "CNN1D_binary", "CNN1D_multiclass",
     "CNN1D_RF_binary", "CNN1D_RF_multiclass",
-    #"ResNet_binary", "ResNet_multiclass",
-    #"InceptionTime_binary", "InceptionTime_multiclass",f
-    #"FCN_binary", "FCN_multiclass",
-    #"OmniScaleCNN_binary", "OmniScaleCNN_multiclass",
+    "ResNet_binary", "ResNet_multiclass",
+    "InceptionTime_binary", "InceptionTime_multiclass",
+    "FCN_binary", "FCN_multiclass",
+    "OmniScaleCNN_binary", "OmniScaleCNN_multiclass"
 ]
 
 
