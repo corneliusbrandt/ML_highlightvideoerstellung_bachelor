@@ -149,7 +149,10 @@ def plot_onehot_predictions_with_slider(y_true, y_pred, num_classes, window=200)
             gt,
             where="post",
             linewidth=2,
-            label="Ground Truth"
+            linestyle="--",
+            color="C1",
+            label="Ground Truth",
+            zorder=3
         )
 
         pred_line, = ax.step(
@@ -157,8 +160,10 @@ def plot_onehot_predictions_with_slider(y_true, y_pred, num_classes, window=200)
             pred,
             where="post",
             linewidth=2,
-            linestyle="--",
-            label="Prediction"
+            linestyle="-",
+            color="C0",
+            label="Prediction",
+            zorder=2
         )
 
         gt_lines.append(gt_line)

@@ -216,10 +216,10 @@ def run_test_models(rf_combination=False,
 
 
 if __name__ == "__main__":
-    run_test_models(rf_combination=False,
+    run_test_models(rf_combination=True,
                     evaluation_mode='multiclass',
                     num_classes=6,
-                    cnn_model_path=r"src\Models\CNN_multiclass.pth",
+                    cnn_model_path=r"src\Models\CNN_RF\CNN_RF_multiclass.pth",
                     rf_model_path=r"src\Models\CNN_RF\RF_multiclass.pkl",
                     test_dataset_path="datasets_output/test_dataset.npz",
                     model_architecture='CNN1D_V3',
