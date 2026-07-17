@@ -1,66 +1,86 @@
 # Automated Mountain Bike Highlight Video Generation
 
-This repository contains the source code developed as part of my Bachelor's thesis. The project aims to automatically generate highlight videos of downhill mountain bike rides by detecting relevant riding events from inertial sensor data using machine learning.
+This repository contains the source code developed as part of my Bachelor's thesis.
+
+The objective of this project is the automatic detection of relevant downhill mountain bike riding events from wearable IMU sensor data using machine learning. The detected events are intended to serve as the basis for an automated highlight video generation pipeline.
 
 ---
 
-## Project Overview
+# Project Overview
 
-Creating highlight videos from downhill mountain bike footage is a time-consuming process that typically requires manually reviewing long video recordings and selecting interesting sections.
+Creating highlight videos from long downhill mountain bike recordings is a time-consuming task that usually requires manually reviewing the complete video footage.
 
-This project aims to autmomate this workflow by combining wearable IMU sensor data with machine learning models to detect relevant riding events such as:
+This project investigates whether riding events can be detected solely from inertial sensor data collected by three wearable IMUs.
 
-* Jumps
-* Left turns
-* Right turns
-* Rear wheel blocks
-* Other riding events
+The complete software pipeline includes
 
-The detected events can subsequently be used to generate compact highlight videos. However this functionality is not yet finished.
+- automatic dataset generation
+- preprocessing and synchronization of sensor data
+- optional data augmentation
+- model training
+- validation and test evaluation
+- automated experiment logging
+
+Several custom and literature-based time series classification models are implemented and compared.
 
 ---
 
-## Repository Structure
+# Repository Structure
 
 ```
 .
 ├── Labeled/
-│   └── Label files used for dataset generation
+│   └── Label files
+│
+├── sensor_and_video_data/
+│   └── Raw sensor recordings and videos (not   included)
 │
 ├── src/
-│   ├── Training and evaluation scripts
-│   ├── Saved model checkpoints
+│   ├── Dataset generation
+│   ├── Data preprocessing
+│   ├── Data augmentation
+│   ├── Model architectures
+│   ├── Training scripts
+│   ├── Evaluation scripts
 │   ├── Helper functions
-|   └── Dataset building scripts
+│   └── Saved model checkpoints
 │
-└── Testing_log/
-    └── Test log files
+├── Testing_log/
+│   └── Automatically generated experiment logs
+│
+├── run_whole_pipeline.py
+│
+└── requirements.txt
 ```
 
 ---
 
-## Dataset
+# Dataset
 
-The raw sensor recordings are **not included** in this repository.
+The raw dataset is **not included** in this repository.
 
-The dataset must be downloaded separately.
+**Dataset download**
 
-**Dataset download:**
+> **TODO:** Insert dataset download link
 
-> **TODO:** Insert download link
+After downloading, create the following folder structure:
 
-After downloading, place the dataset in the samr directory as all the other folders before running the dataset generation pipeline. All the data should be located in a folder called ```sensor_and_video_data```. 
+```
+sensor_and_video_data/
+```
+
+Place all run folders inside this folder.
 
 ---
 
-## Installation
+# Installation
 
-The project was developed using:
+The project was developed using
 
-* Python 3.13.7
-* Windows
+- Python 3.13.7
+- Windows
 
-Install all required dependencies via
+Install all required packages using
 
 ```bash
 pip install -r requirements.txt
@@ -68,120 +88,161 @@ pip install -r requirements.txt
 
 ---
 
-## Supported Models
+# Complete Pipeline
 
-The repository contains implementations and evaluation scripts for the following models:
+The entire workflow can be executed using
 
-### Custom Models
-
-* CNN1D_V1
-* CNN1D_V2
-* CNN1D_V3
-* CNN Feature Extractor + Random Forest Classifier
-
-Trained and evaluated on the validation set using the following scripts:
-
-```
-train_and_eval_binary.py
-train_and_eval_multiclass.py
-train_and_eval_RF.py
-train_and_eval_RF_multiclass.py
+```bash
+python run_whole_pipeline.py
 ```
 
-### Existing Time Series Classification Models
+The pipeline automatically performs the following steps:
 
-* Fully Convolutional Network (FCN)
-* ResNet
-* InceptionTime
-* Omni-Scale CNN (OS-CNN)
-* HIVE-COTE
+1. Dataset generation
+2. Data preprocessing
+3. Optional data augmentation depending on which dataset you load
+4. Model training
+5. Validation evaluation
+6. Test evaluation
+7. Logging of all results
 
-Trained and evaluated on the validation set using the following scripts:
+All configuration parameters are defined inside
 
 ```
-train_and_eval_tsai.py
-train_and_eval_HIVECOTE.py
+pipeline_config.py
 ```
+
+Different experiments can therefore be executed simply by modifying the configuration.
 
 ---
 
-## Workflow
+# Implemented Models
 
-The complete workflow consists of the following steps.
+## Custom Models
 
-### 1. Dataset Generation
-
-```
-dataset_builder.ipynb
-```
-
-This notebook
-
-* loads the raw sensor recordings
-* synchronizes sensor and label data
-* preprocesses the signals
-* generates sliding windows
-* performs optional data augmentation
-* exports the final datasets.
+- CNN1D_V1
+- CNN1D_V2
+- CNN1D_V3
+- CNN Feature Extractor + Random Forest (Binary)
+- CNN Feature Extractor + Random Forest (Multiclass)
 
 ---
 
-### 2. Model Training
+## Literature Models
 
-Run one of the training scripts inside the `src` directory.
+The following state-of-the-art Time Series Classification models are included.
 
-Depending on the selected script, different model architectures are trained.
-
----
-
-### 3. Model Evaluation on Test Dataset
-
-After training, the models can be evaluated on the testdataset using ```test_models.py```. Make sure to adjust the following parameter in the test script depending on which model you want to run:
-* num_classes (2 or 6 for binary or multiclass)
-* rf_combiation (wether the model you want to test is a combination of CNN and Random Forest or not)
-* evaluation_mode (multiclass or binary)
-* cnn_model_patch and rf_model_path
-* Path to the dataset
-* used model
+- Fully Convolutional Network (FCN)
+- ResNet
+- InceptionTime
+- Omni-Scale CNN (OSCNN)
+- HIVE-COTE
 
 ---
 
-## Configuration
+# Dataset Generation
 
-Training parameters are configured directly inside the respective training scripts.
+The dataset generation pipeline automatically performs
 
-Typical adjustable parameters include:
+- synchronization of sensor and video data
+- label generation
+- signal preprocessing
+- sliding window generation
+- train/validation/test split
+- optional data augmentation
+- normalization
+- dataset export
 
-* model architecture
-* number of classes
-* learning rate
-* batch size
-* number of epochs
-* optimizer
-* loss function
-* focal loss parameters
-* class weights
-* early stopping settings
-* decision threshold
-
-This allows every experiment to be configured independently.
+The generated datasets are then used automatically by the training pipeline.
 
 ---
 
-## Output
+# Training
 
-Depending on the executed script, the repository generates
+Each configured model is automatically
 
-* trained model checkpoints
-* evaluation metrics
-* confusion matrices
-* generated datasets
+- initialized
+- trained
+- validated
+- saved
+- evaluated on the test dataset
+
+No manual intervention is required during execution.
 
 ---
 
-## Notes
+# Configuration
 
-The repository is intended for research and educational purposes as part of a Bachelor's thesis on automatic event detection in downhill mountain biking using inertial sensor data.
+Most experiment parameters can be configured inside the configuration file and the specific model training files (e.g. ```train_and_eval_RF.py```).
 
-Future work may extend the pipeline with additional datasets, model architectures, or improved highlight video generation methods.
+Typical parameters include
 
+- model architecture
+- binary / multiclass classification
+- sequence width
+- sliding window step size
+- learning rate
+- batch size
+- number of epochs
+- optimizer
+- focal loss parameters
+- class weight scaling
+- data augmentation
+- evaluation mode
+
+---
+
+# Output
+
+Depending on the selected configuration, the pipeline automatically generates
+
+- trained model checkpoints
+- confusion matrices
+- evaluation metrics
+- precision, recall and F1-score
+- experiment logs
+- generated datasets
+
+---
+
+# Experiment Logs
+
+Every execution of the pipeline automatically creates a log file containing
+
+- training configuration
+- evaluation metrics
+- confusion matrices
+- classification reports
+- execution times
+- average performance over multiple runs
+
+This enables reproducible experiments and simplifies model comparison.
+
+---
+
+# Reproducibility
+
+The repository was developed to enable reproducible experiments.
+
+Running the pipeline with identical datasets and configuration files reproduces the complete workflow from dataset generation to model evaluation.
+
+---
+
+# Notes
+
+This repository accompanies the Bachelor's thesis
+
+> **Automatische Highlight-Videoerstellung
+beim Downhill-Mountainbiking**
+
+The current focus of the project is automatic event detection.
+
+The final automatic video generation component has not yet been implemented due to the achieved classification performance.
+
+Future work may include
+
+- larger datasets
+- additional model architectures
+- improved data augmentation
+- multimodal sensor fusion
+- automatic highlight video generation
