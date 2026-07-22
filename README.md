@@ -33,7 +33,7 @@ Several custom and literature-based time series classification models are implem
 │   └── Label files
 │
 ├── sensor_and_video_data/
-│   └── Raw sensor recordings and videos (not   included)
+│   └── Raw sensor recordings and videos (not included)
 │
 ├── src/
 │   ├── Dataset generation
@@ -61,7 +61,7 @@ The raw dataset is **not included** in this repository.
 
 **Dataset download**
 
-> **TODO:** Insert dataset download link
+**DOI:** [10.5281/zenodo.21488742](https://doi.org/10.5281/zenodo.21488742)
 
 After downloading, create the following folder structure:
 
@@ -69,7 +69,16 @@ After downloading, create the following folder structure:
 sensor_and_video_data/
 ```
 
-Place all run folders inside this folder.
+Place all run folders inside this folder. It should look something like this:
+
+```
+sensor_and_video_data/
+    ├── 0713_0833
+    ├── 0713_0903
+    ├── 0713_0932
+    ├── 0717_0717
+    └── ...
+```
 
 ---
 
@@ -105,14 +114,6 @@ The pipeline automatically performs the following steps:
 5. Validation evaluation
 6. Test evaluation
 7. Logging of all results
-
-All configuration parameters are defined inside
-
-```
-pipeline_config.py
-```
-
-Different experiments can therefore be executed simply by modifying the configuration.
 
 ---
 
@@ -173,22 +174,22 @@ No manual intervention is required during execution.
 
 # Configuration
 
-Most experiment parameters can be configured inside the configuration file and the specific model training files (e.g. ```train_and_eval_RF.py```).
+Most experiment parameters can be configured inside the configuration file (```pipeline_config.py```), the specific model training files (e.g. ```train_and_eval_RF.py```) or inside the data pipeline (```dataset_builder.jpynb```)
 
 Typical parameters include
 
 - model architecture
 - binary / multiclass classification
 - sequence width
-- sliding window step size
+- step size
+- window size
 - learning rate
 - batch size
 - number of epochs
-- optimizer
 - focal loss parameters
 - class weight scaling
 - data augmentation
-- evaluation mode
+- evaluation mode (binary or multiclass)
 
 ---
 
@@ -201,7 +202,7 @@ Depending on the selected configuration, the pipeline automatically generates
 - evaluation metrics
 - precision, recall and F1-score
 - experiment logs
-- generated datasets
+- datasets
 
 ---
 
@@ -218,13 +219,6 @@ Every execution of the pipeline automatically creates a log file containing
 
 This enables reproducible experiments and simplifies model comparison.
 
----
-
-# Reproducibility
-
-The repository was developed to enable reproducible experiments.
-
-Running the pipeline with identical datasets and configuration files reproduces the complete workflow from dataset generation to model evaluation.
 
 ---
 
