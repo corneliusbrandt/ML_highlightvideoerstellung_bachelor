@@ -30,7 +30,7 @@ Several custom and literature-based time series classification models are implem
 ```
 .
 ├── Labeled/
-│   └── Label files
+│   └── Label files (not included)
 │
 ├── sensor_and_video_data/
 │   └── Raw sensor recordings and videos (not included)
@@ -57,7 +57,7 @@ Several custom and literature-based time series classification models are implem
 
 # Dataset
 
-The raw dataset is **not included** in this repository.
+The raw dataset and the label files are **not included** in this repository.
 
 **Dataset download**
 
@@ -68,9 +68,10 @@ After downloading, create the following folder structure:
 
 ```
 sensor_and_video_data/
+Labeled/
 ```
 
-Place all run folders inside this folder. It should look something like this:
+Place all run folders and label files inside these folder. It should look like this:
 
 ```
 sensor_and_video_data/
@@ -78,6 +79,12 @@ sensor_and_video_data/
     ├── 0713_0903
     ├── 0713_0932
     ├── 0717_0717
+    └── ...
+Labeled/
+    ├── 0713_0833_hot.json
+    ├── 0713_0833_sequences.json
+    ├── 0713_0903_hot.json
+    ├── 0713_0903_sequences.json
     └── ...
 ```
 
