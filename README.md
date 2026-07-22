@@ -62,6 +62,7 @@ The raw dataset is **not included** in this repository.
 **Dataset download**
 
 **DOI:** [10.5281/zenodo.21488742](https://doi.org/10.5281/zenodo.21488742)
+(at current date 22.07.2026 not availabe, maybe in the future.)
 
 After downloading, create the following folder structure:
 

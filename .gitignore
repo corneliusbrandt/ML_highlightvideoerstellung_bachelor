@@ -212,3 +212,6 @@ sensor_and_video_data/
 # Output datasets
 datasets_output/
 
+#Labeled data
+Labeled/
+
