@@ -243,3 +243,14 @@ Future work may include
 - improved data augmentation
 - multimodal sensor fusion
 - automatic highlight video generation
+
+---
+
+# Archived software release
+
+The software version associated with the bachelor's thesis is archived
+on Zenodo:
+
+[Software release on Zenodo](https://doi.org/10.5281/zenodo.21511754)
+
+DOI: `10.5281/zenodo.21511754`
