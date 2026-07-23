@@ -57,14 +57,9 @@ Several custom and literature-based time series classification models are implem
 
 # Dataset
 
-The raw dataset and the label files are **not included** in this repository.
+The raw dataset and the label files are **not included** in this repository, since they are not publicly available. However they sould be included in the repository like this:
 
-**Dataset download**
-
-**DOI:** [10.5281/zenodo.21488742](https://doi.org/10.5281/zenodo.21488742)
-(at current date 22.07.2026 not availabe, maybe in the future.)
-
-After downloading, create the following folder structure:
+Create the following folder structure:
 
 ```
 sensor_and_video_data/
